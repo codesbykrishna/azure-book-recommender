@@ -1,0 +1,5 @@
+azure-functions==1.21.3
+azure-storage-blob==12.19.0
+rapidfuzz==3.9.6
+requests==2.32.3
+azure-ai-translation-text==1.0.0
