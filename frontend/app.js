@@ -13,7 +13,7 @@
  *   /api/titles endpoint serve it (see fallback below).
  */
 
-const API_BASE = "https://book-recommend-api.azurewebsites.net/api";
+const API_BASE = "https://book-recommend-api-c3bzbjbgbydab7hw.centralindia-01.azurewebsites.net/api";
 // ← Replace with your actual Azure Function App URL after deployment
 
 /* ═══════════════════════════════════════════════════════════════
