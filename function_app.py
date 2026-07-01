@@ -4,42 +4,27 @@ Personalized Book Recommendation Engine.
 
 Endpoints:
   GET  /api/titles     -> list of {index, title, genre} for autocomplete
-                          (also available as a static titles.json for the
-                          frontend - this endpoint is a fallback/refresh)
+  POST /api/recommend  -> fuzzy match + similarity + GPT explanation + translation
+  POST /api/chat       -> conversational chatbot with translation
 
-  POST /api/recommend  -> body: { "book_title": "<fuzzy title>",
-                                   "language": "es",      (optional, default "en")
-                                   "top_n": 5 }            (optional, default 5)
-                          returns: matched book + recommended books with
-                          natural-language (translated) explanations
-
-  POST /api/chat       -> body: { "message": "...",
-                                   "history": [{"role":"user"/"assistant","content":"..."}],
-                                   "language": "en" }
-                          returns: chatbot reply (translated if requested)
-
-Required app settings (Function App > Configuration):
-  STORAGE_CONNECTION_STR   connection string for the storage account
-                           holding enriched_data.json (e.g. bookstorage105)
-  BLOB_CONTAINER           container name, e.g. "bookdata"
-  AZURE_OPENAI_ENDPOINT
-  AZURE_OPENAI_KEY
-  AZURE_OPENAI_DEPLOYMENT
-  TRANSLATOR_KEY
-  TRANSLATOR_ENDPOINT
-  TRANSLATOR_REGION
+Required app settings:
+  STORAGE_CONNECTION_STR, BLOB_CONTAINER
+  AZURE_OPENAI_ENDPOINT, AZURE_OPENAI_KEY, AZURE_OPENAI_DEPLOYMENT
+  TRANSLATOR_KEY, TRANSLATOR_ENDPOINT, TRANSLATOR_REGION
+  GOOGLE_BOOKS_API_KEY
 """
 
 import os
 import json
 import logging
-from google_books import search_book
+
 import azure.functions as func
 from azure.storage.blob import BlobServiceClient
 
 from similarity import fuzzy_match_title, get_recommendations
 from openai_helper import generate_recommendation_explanation, chat_with_assistant
 from translator_helper import translate_text
+from google_books import search_book
 
 app = func.FunctionApp()
 
@@ -50,8 +35,8 @@ _data_cache = None
 
 
 def load_data():
-    """Load enriched_data.json from Blob Storage, caching it in memory
-    for the lifetime of the Function App instance."""
+    """Load enriched_data.json from Blob Storage, cached for the lifetime
+    of the Function App instance."""
     global _data_cache
     if _data_cache is not None:
         return _data_cache
@@ -110,15 +95,19 @@ def recommend(req: func.HttpRequest) -> func.HttpResponse:
         logging.error(f"recommend failed loading data: {exc}")
         return _json_response({"error": str(exc)}, status_code=500)
 
+    # ── FIX: fuzzy match first, only call Google Books if a match is found ──
     liked_book, match_score = fuzzy_match_title(book_title, data)
-    google_book = search_book(book_title)
-    
+
     if liked_book is None:
         return _json_response(
             {"error": f"No book found matching '{book_title}'"}, status_code=404
         )
 
+    # Google Books call happens only when we have a valid matched book
+    google_book = search_book(liked_book["title"])
+
     top_matches = get_recommendations(liked_book, data, top_n=top_n)
+
     recommendations = []
     for score, book, shared_phrases in top_matches:
         explanation_en = generate_recommendation_explanation(liked_book, book, shared_phrases)
@@ -135,17 +124,17 @@ def recommend(req: func.HttpRequest) -> func.HttpResponse:
         )
 
     return _json_response(
-    {
-        "matched_book": {
-            "index": liked_book["index"],
-            "title": liked_book["title"],
-            "genre": liked_book["genre"],
-            "match_score": match_score,
-        },
-        "google_book": google_book,
-        "recommendations": recommendations,
-    }
-)
+        {
+            "matched_book": {
+                "index": liked_book["index"],
+                "title": liked_book["title"],
+                "genre": liked_book["genre"],
+                "match_score": match_score,
+            },
+            "google_book": google_book,
+            "recommendations": recommendations,
+        }
+    )
 
 
 @app.route(route="chat", methods=["POST"], auth_level=func.AuthLevel.ANONYMOUS)
@@ -168,8 +157,7 @@ def chat(req: func.HttpRequest) -> func.HttpResponse:
         logging.error(f"chat failed loading data: {exc}")
         return _json_response({"error": str(exc)}, status_code=500)
 
-    # Lightweight RAG: fuzzy-match the message text against titles to find
-    # a handful of relevant books to give the assistant as context.
+    # Lightweight RAG: fuzzy-match the message against titles for context
     candidate_books = []
     seen_genres = set()
     liked_book, score = fuzzy_match_title(message, data, score_cutoff=60)
@@ -178,7 +166,6 @@ def chat(req: func.HttpRequest) -> func.HttpResponse:
         for s, b, _shared in get_recommendations(liked_book, data, top_n=5):
             candidate_books.append(b)
     else:
-        # Fall back: include a few books from genres mentioned in the message
         for b in data:
             genre = (b.get("genre") or "").lower()
             if genre and genre in message.lower() and genre not in seen_genres:
