@@ -1,26 +1,18 @@
 /**
  * app.js — Shelf Book Recommendation Engine
  *
- * HOW TO CONFIGURE:
- *   Set API_BASE to the base URL of your deployed Azure Function App.
- *   e.g. "https://book-recommend-api.azurewebsites.net/api"
- *
- *   If running locally with `func start`, use:
- *   "http://localhost:7071/api"
- *
- *   titles.json is loaded from the same folder as index.html.
- *   After running enrich_data.py, copy titles.json here OR let the
- *   /api/titles endpoint serve it (see fallback below).
+ * Set API_BASE to your deployed Azure Function App URL.
+ * e.g. "https://book-recommend-api.azurewebsites.net/api"
+ * For local testing: "http://localhost:7071/api"
  */
 
-const API_BASE = "https://book-recommend-api-c3bzbjbgbydab7hw.centralindia-01.azurewebsites.net/api";
-// ← Replace with your actual Azure Function App URL after deployment
+const API_BASE = "https://book-recommend-api.azurewebsites.net/api";
 
 /* ═══════════════════════════════════════════════════════════════
    SHARED STATE
 ═══════════════════════════════════════════════════════════════ */
-let allTitles = [];       // [{index, title, genre}]
-let selectedTitle = "";   // the currently chosen title (from autocomplete)
+let allTitles = [];
+let selectedTitle = "";
 
 /* ═══════════════════════════════════════════════════════════════
    NAVIGATION
@@ -29,7 +21,6 @@ document.querySelectorAll(".nav-tab").forEach(tab => {
   tab.addEventListener("click", () => {
     document.querySelectorAll(".nav-tab").forEach(t => t.classList.remove("active"));
     tab.classList.add("active");
-
     const target = tab.dataset.view;
     document.querySelectorAll(".view").forEach(v => v.classList.remove("active"));
     document.getElementById(`view-${target}`).classList.add("active");
@@ -40,20 +31,13 @@ document.querySelectorAll(".nav-tab").forEach(tab => {
    LOAD TITLES (for autocomplete)
 ═══════════════════════════════════════════════════════════════ */
 async function loadTitles() {
-  // Try local titles.json first (fastest), fall back to /api/titles
   try {
     const resp = await fetch("titles.json");
-    if (resp.ok) {
-      allTitles = await resp.json();
-      return;
-    }
+    if (resp.ok) { allTitles = await resp.json(); return; }
   } catch (_) {}
-
   try {
     const resp = await fetch(`${API_BASE}/titles`);
-    if (resp.ok) {
-      allTitles = await resp.json();
-    }
+    if (resp.ok) allTitles = await resp.json();
   } catch (err) {
     console.warn("Could not load titles:", err);
   }
@@ -70,13 +54,11 @@ const recommendBtn  = document.getElementById("recommend-btn");
 
 let activeIdx = -1;
 
-// Simple fuzzy match: every word in the query appears in the title
 function matchScore(query, title) {
   const q = query.toLowerCase();
   const t = title.toLowerCase();
   if (t.startsWith(q)) return 2;
   if (t.includes(q)) return 1;
-  // word-level: every word of query is somewhere in title
   const words = q.split(" ").filter(Boolean);
   if (words.length > 1 && words.every(w => t.includes(w))) return 0.8;
   return 0;
@@ -94,7 +76,7 @@ function highlightMatch(title, query) {
 }
 
 function escHtml(s) {
-  return s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+  return String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
 }
 
 function showSuggestions(query) {
@@ -148,7 +130,6 @@ bookInput.addEventListener("input", () => {
 bookInput.addEventListener("keydown", e => {
   const items = suggestionBox.querySelectorAll("li");
   if (!items.length) return;
-
   if (e.key === "ArrowDown") {
     e.preventDefault();
     activeIdx = Math.min(activeIdx + 1, items.length - 1);
@@ -162,7 +143,6 @@ bookInput.addEventListener("keydown", e => {
   } else if (e.key === "Escape") {
     closeSuggestions(); return;
   } else { return; }
-
   items.forEach((li, i) => li.classList.toggle("active", i === activeIdx));
   if (activeIdx >= 0) bookInput.value = items[activeIdx].dataset.title;
 });
@@ -174,14 +154,15 @@ document.addEventListener("click", e => {
 /* ═══════════════════════════════════════════════════════════════
    RECOMMEND
 ═══════════════════════════════════════════════════════════════ */
-const resultsGrid  = document.getElementById("results");
-const matchedBook  = document.getElementById("matched-book");
-const matchedTitle = document.getElementById("matched-title");
-const matchedGenre = document.getElementById("matched-genre");
-const emptyState   = document.getElementById("empty-state");
-const emptyMsg     = document.getElementById("empty-msg");
-const btnText      = recommendBtn.querySelector(".btn-text");
-const btnSpinner   = recommendBtn.querySelector(".btn-spinner");
+const resultsGrid    = document.getElementById("results");
+const matchedBook    = document.getElementById("matched-book");
+const matchedTitle   = document.getElementById("matched-title");
+const matchedGenre   = document.getElementById("matched-genre");
+const googleBookInfo = document.getElementById("google-book-info");
+const emptyState     = document.getElementById("empty-state");
+const emptyMsg       = document.getElementById("empty-msg");
+const btnText        = recommendBtn.querySelector(".btn-text");
+const btnSpinner     = recommendBtn.querySelector(".btn-spinner");
 
 function setLoading(on) {
   btnText.hidden = on;
@@ -190,15 +171,17 @@ function setLoading(on) {
 }
 
 recommendBtn.addEventListener("click", async () => {
-  const title  = selectedTitle || bookInput.value.trim();
-  const lang   = document.getElementById("lang-select").value;
-  const topN   = parseInt(document.getElementById("count-select").value);
+  const title = selectedTitle || bookInput.value.trim();
+  const lang  = document.getElementById("lang-select").value;
+  const topN  = parseInt(document.getElementById("count-select").value);
 
   if (!title) return;
 
   setLoading(true);
   resultsGrid.innerHTML = "";
   matchedBook.hidden = true;
+  googleBookInfo.hidden = true;
+  googleBookInfo.innerHTML = "";
   emptyState.hidden = true;
 
   try {
@@ -215,12 +198,17 @@ recommendBtn.addEventListener("click", async () => {
       return;
     }
 
-    // Show matched book badge
+    // ── Matched book badge ──────────────────────────────────
     matchedTitle.textContent = data.matched_book.title;
     matchedGenre.textContent = data.matched_book.genre;
     matchedBook.hidden = false;
 
-    // Render recommendation cards
+    // ── Google Books panel ──────────────────────────────────
+    if (data.google_book) {
+      renderGoogleBookPanel(data.google_book);
+    }
+
+    // ── Recommendation cards ────────────────────────────────
     if (!data.recommendations || data.recommendations.length === 0) {
       showEmpty("No close matches found. Try another title.");
       return;
@@ -238,6 +226,43 @@ recommendBtn.addEventListener("click", async () => {
     recommendBtn.disabled = false;
   }
 });
+
+/**
+ * Renders the Google Books enriched panel for the matched/searched book.
+ * Shows: thumbnail, authors, publisher, year, rating, page count, description, link.
+ */
+function renderGoogleBookPanel(gb) {
+  const authors    = (gb.authors || []).join(", ") || "Unknown author";
+  const publisher  = gb.publisher ? `${gb.publisher}` : "";
+  const year       = gb.publishedDate ? gb.publishedDate.slice(0, 4) : "";
+  const pubLine    = [publisher, year].filter(Boolean).join(", ");
+  const rating     = gb.averageRating
+    ? `${"★".repeat(Math.round(gb.averageRating))}${"☆".repeat(5 - Math.round(gb.averageRating))} ${gb.averageRating}/5`
+    : "";
+  const pages      = gb.pageCount ? `${gb.pageCount} pages` : "";
+  const desc       = gb.description
+    ? (gb.description.length > 280 ? gb.description.slice(0, 280) + "…" : gb.description)
+    : "";
+  const thumb      = gb.thumbnail || "";
+  const link       = gb.infoLink || "";
+
+  googleBookInfo.innerHTML = `
+    <div class="gb-panel">
+      ${thumb ? `<img class="gb-thumb" src="${escHtml(thumb)}" alt="Cover of ${escHtml(gb.title || '')}" />` : ""}
+      <div class="gb-details">
+        <p class="gb-authors">${escHtml(authors)}</p>
+        ${pubLine ? `<p class="gb-meta">${escHtml(pubLine)}</p>` : ""}
+        <div class="gb-stats">
+          ${rating ? `<span class="gb-rating">${escHtml(rating)}</span>` : ""}
+          ${pages  ? `<span class="gb-pages">${escHtml(pages)}</span>`   : ""}
+        </div>
+        ${desc ? `<p class="gb-desc">${escHtml(desc)}</p>` : ""}
+        ${link ? `<a class="gb-link" href="${escHtml(link)}" target="_blank" rel="noopener">View on Google Books →</a>` : ""}
+      </div>
+    </div>
+  `;
+  googleBookInfo.hidden = false;
+}
 
 function buildCard(rec, rank) {
   const card = document.createElement("div");
@@ -263,7 +288,6 @@ function showEmpty(msg) {
   emptyState.hidden = false;
 }
 
-// Show empty state on load
 showEmpty("Search for a book above to get started.");
 
 /* ═══════════════════════════════════════════════════════════════
@@ -304,7 +328,6 @@ async function sendChatMessage(text) {
 
   appendBubble(text, "user");
   chatHistory.push({ role: "user", content: text });
-
   showTyping();
 
   const lang = document.getElementById("chat-lang-select").value;
@@ -319,14 +342,10 @@ async function sendChatMessage(text) {
     const data = await resp.json();
     removeTyping();
 
-    const reply = resp.ok
-      ? data.reply
-      : (data.error || "I had trouble with that. Please try again.");
-
+    const reply = resp.ok ? data.reply : (data.error || "I had trouble with that. Please try again.");
     appendBubble(reply, "assistant");
     chatHistory.push({ role: "assistant", content: reply });
 
-    // Keep history bounded (last 10 turns)
     if (chatHistory.length > 20) chatHistory = chatHistory.slice(-20);
 
   } catch (err) {
