@@ -33,7 +33,7 @@ Required app settings (Function App > Configuration):
 import os
 import json
 import logging
-
+from google_books import search_book
 import azure.functions as func
 from azure.storage.blob import BlobServiceClient
 
@@ -111,13 +111,14 @@ def recommend(req: func.HttpRequest) -> func.HttpResponse:
         return _json_response({"error": str(exc)}, status_code=500)
 
     liked_book, match_score = fuzzy_match_title(book_title, data)
+    google_book = search_book(book_title)
+    
     if liked_book is None:
         return _json_response(
             {"error": f"No book found matching '{book_title}'"}, status_code=404
         )
 
     top_matches = get_recommendations(liked_book, data, top_n=top_n)
-
     recommendations = []
     for score, book, shared_phrases in top_matches:
         explanation_en = generate_recommendation_explanation(liked_book, book, shared_phrases)
@@ -134,16 +135,17 @@ def recommend(req: func.HttpRequest) -> func.HttpResponse:
         )
 
     return _json_response(
-        {
-            "matched_book": {
-                "index": liked_book["index"],
-                "title": liked_book["title"],
-                "genre": liked_book["genre"],
-                "match_score": match_score,
-            },
-            "recommendations": recommendations,
-        }
-    )
+    {
+        "matched_book": {
+            "index": liked_book["index"],
+            "title": liked_book["title"],
+            "genre": liked_book["genre"],
+            "match_score": match_score,
+        },
+        "google_book": google_book,
+        "recommendations": recommendations,
+    }
+)
 
 
 @app.route(route="chat", methods=["POST"], auth_level=func.AuthLevel.ANONYMOUS)
