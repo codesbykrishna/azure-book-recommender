@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Book Details — Shelf</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=Inter:wght@400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="style.css" />
+  
+</head>
+<body class="book-page">
+
+  <!-- ── Header ─────────────────────────────────────────────── -->
+  <header class="site-header">
+    <div class="header-inner">
+      <a href="index.html" class="logo">shelf<span class="logo-dot">.</span></a>
+      <nav class="header-nav">
+        <a href="index.html" class="nav-back-btn">
+          <svg viewBox="0 0 20 20" fill="none" width="16" height="16">
+            <path d="M12 4L6 10l6 6" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+          Back to Discover
+        </a>
+      </nav>
+
+      <!-- ── Auth area ──────────────────────────────────── -->
+      <div id="auth-area" class="auth-area">
+        <button id="auth-login-btn" class="auth-login-btn">Sign In</button>
+        <div id="auth-user-area" class="auth-user-area" hidden>
+          <span id="auth-user-name" class="auth-user-name"></span>
+          <button id="auth-logout-btn" class="auth-logout-btn" hidden>Sign Out</button>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <!-- ── Loading state ──────────────────────────────────────── -->
+  <div id="page-loading" class="page-loading">
+    <div class="page-spinner">
+      <svg viewBox="0 0 50 50" fill="none">
+        <circle cx="25" cy="25" r="20" stroke="var(--accent-md)" stroke-width="4"/>
+        <path d="M25 5 A20 20 0 0 1 45 25" stroke="var(--accent)" stroke-width="4" stroke-linecap="round"/>
+      </svg>
+      <p>Loading book details…</p>
+    </div>
+  </div>
+
+  <!-- ── Error state ────────────────────────────────────────── -->
+  <div id="page-error" class="page-error" hidden>
+    <div class="error-card">
+      <svg viewBox="0 0 48 48" fill="none" width="48" height="48">
+        <circle cx="24" cy="24" r="20" stroke="var(--ink3)" stroke-width="2"/>
+        <path d="M24 14v12M24 32v2" stroke="var(--ink3)" stroke-width="2" stroke-linecap="round"/>
+      </svg>
+      <p id="error-msg">Something went wrong.</p>
+      <a href="index.html" class="btn-primary">← Back to search</a>
+    </div>
+  </div>
+
+  <!-- ── Main content ───────────────────────────────────────── -->
+  <main id="page-content" class="book-page-content" hidden>
+    <div class="book-container">
+
+      <!-- ── Book Hero Section ─────────────────────────────── -->
+      <section class="book-hero glass-card">
+
+        <!-- Cover -->
+        <div class="book-cover-wrap">
+          <div class="book-cover-shadow"></div>
+          <img id="book-cover" class="book-cover-img" src="" alt="" />
+          <div id="book-cover-placeholder" class="book-cover-placeholder" hidden>
+            <svg viewBox="0 0 80 110" fill="none">
+              <rect width="80" height="110" rx="6" fill="var(--bg2)"/>
+              <path d="M20 40h40M20 55h30M20 70h35" stroke="var(--ink3)" stroke-width="3" stroke-linecap="round"/>
+            </svg>
+          </div>
+        </div>
+
+        <!-- Meta -->
+        <div class="book-meta">
+
+          <!-- Dataset warning banner -->
+          <div id="dataset-warning" class="dataset-warning" hidden>
+            <svg viewBox="0 0 20 20" fill="none" width="16" height="16">
+              <circle cx="10" cy="10" r="8" stroke="currentColor" stroke-width="1.5"/>
+              <path d="M10 6v5M10 13v1" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+            </svg>
+            <span id="dataset-warning-msg"></span>
+          </div>
+
+          <!-- Categories / genre chips -->
+          <div id="book-categories" class="book-categories"></div>
+
+          <!-- Title -->
+          <h1 id="book-title" class="book-detail-title"></h1>
+
+          <!-- Authors -->
+          <p id="book-authors" class="book-authors"></p>
+
+          <!-- Star rating -->
+          <div id="book-rating-wrap" class="book-rating-wrap" hidden>
+            <div id="book-stars" class="book-stars"></div>
+            <span id="book-rating-count" class="book-rating-count"></span>
+          </div>
+
+          <!-- Quick stats grid -->
+          <div class="book-stats-grid">
+            <div id="stat-publisher" class="book-stat" hidden>
+              <span class="stat-label">Publisher</span>
+              <span id="stat-publisher-val" class="stat-value"></span>
+            </div>
+            <div id="stat-date" class="book-stat" hidden>
+              <span class="stat-label">Published</span>
+              <span id="stat-date-val" class="stat-value"></span>
+            </div>
+            <div id="stat-pages" class="book-stat" hidden>
+              <span class="stat-label">Pages</span>
+              <span id="stat-pages-val" class="stat-value"></span>
+            </div>
+            <div id="stat-language" class="book-stat" hidden>
+              <span class="stat-label">Language</span>
+              <span id="stat-language-val" class="stat-value"></span>
+            </div>
+            <div id="stat-isbn10" class="book-stat" hidden>
+              <span class="stat-label">ISBN-10</span>
+              <span id="stat-isbn10-val" class="stat-value mono"></span>
+            </div>
+            <div id="stat-isbn13" class="book-stat" hidden>
+              <span class="stat-label">ISBN-13</span>
+              <span id="stat-isbn13-val" class="stat-value mono"></span>
+            </div>
+          </div>
+
+          <!-- Action buttons -->
+          <div class="book-actions">
+            <a id="google-books-btn" class="btn-primary" href="#" target="_blank" rel="noopener" hidden>
+              <svg viewBox="0 0 20 20" fill="none" width="16" height="16">
+                <path d="M11 3H5a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-6" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+                <path d="M15 3h2v2M11 9l6-6" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+              View on Google Books
+            </a>
+            <a href="index.html" class="btn-secondary">← Search another book</a>
+          </div>
+        </div>
+      </section>
+
+      <!-- ── Description ───────────────────────────────────── -->
+      <section id="book-desc-section" class="book-desc-section glass-card" hidden>
+        <h2 class="section-heading">About this book</h2>
+        <div id="book-description" class="book-description"></div>
+        <button id="desc-toggle" class="desc-toggle" hidden>Show more</button>
+      </section>
+
+      <!-- ── Recommendations ───────────────────────────────── -->
+      <section id="rec-section" class="rec-section" hidden>
+        <div class="rec-header">
+          <h2 class="section-heading">Recommended Books</h2>
+          <p class="rec-subtitle">Curated by AI · Based on themes &amp; genre</p>
+        </div>
+        <div id="rec-grid" class="rec-grid"></div>
+      </section>
+
+      <!-- No recommendations message -->
+      <div id="no-rec-msg" class="no-rec-msg" hidden>
+        <svg viewBox="0 0 48 48" fill="none" width="40" height="40">
+          <rect x="8" y="6" width="22" height="30" rx="2" stroke="currentColor" stroke-width="2"/>
+          <rect x="14" y="10" width="22" height="30" rx="2" stroke="currentColor" stroke-width="2" fill="var(--bg)"/>
+          <path d="M18 18h10M18 23h7" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+        </svg>
+        <p id="no-rec-text"></p>
+      </div>
+
+    </div>
+  </main>
+
+  <!-- ── Footer ─────────────────────────────────────────────── -->
+  <footer class="site-footer">
+    <p>Built with Azure AI Language · Azure OpenAI · Azure Translator · Azure Functions</p>
+  </footer>
+
+  <script src="auth.js"></script>
+  <script src="book.js"></script>
+</body>
+</html>
