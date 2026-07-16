@@ -9,7 +9,7 @@
 
 /* ─── Config ────────────────────────────────────────────────── */
 // Must match the API_BASE in app.js exactly
-const API_BASE = "https://book-recommend-api.azurewebsites.net/api";
+const API_BASE = "book-recommend-api-c3bzbjbgbydab7hw.centralindia-01.azurewebsites.net";
 
 /* ─── DOM refs ──────────────────────────────────────────────── */
 const pageLoading   = document.getElementById("page-loading");
