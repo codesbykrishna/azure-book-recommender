@@ -513,25 +513,13 @@ mark { background: none; color: var(--accent); font-weight: 600; }
    BOOK DETAILS PAGE — all new styles, nothing above modified
 ═══════════════════════════════════════════════════════════════ */
 
-/* ── Dark mode tokens ───────────────────────────────────────── */
-@media (prefers-color-scheme: dark) {
-  :root {
-    --bg:        #13120F;
-    --bg2:       #1E1D18;
-    --ink:       #F0EDE6;
-    --ink2:      #A8A49A;
-    --ink3:      #6A665E;
-    --accent:    #6B9FE4;
-    --accent-lt: #1A2535;
-    --accent-md: #2D4A70;
-    --gold:      #D4A855;
-    --gold-lt:   #2A2010;
-    --shadow:    0 2px 12px rgba(0,0,0,0.3);
-    --shadow-lg: 0 8px 32px rgba(0,0,0,0.45);
-    --glass-bg:  rgba(30, 29, 24, 0.7);
-    --glass-border: rgba(255,255,255,0.07);
-  }
-}
+/* Note: dark-mode tokens intentionally removed — the rest of the site
+   (Discover / index.html) has no dark theme, so letting only this page
+   flip to dark on prefers-color-scheme made the two pages inconsistent
+   and, combined with the unconditional --glass-bg below, unreadable
+   (light glass cards over a dark page bg + near-white --ink text).
+   Book Details now always uses the same light palette as the rest of
+   the app. Re-introduce a real dark theme site-wide later if wanted. */
 
 :root {
   --glass-bg:     rgba(255,255,255,0.72);
@@ -780,9 +768,6 @@ a.logo {
   padding: 10px 12px;
   background: var(--bg2);
   border-radius: 8px;
-}
-@media (prefers-color-scheme: dark) {
-  .book-stat { background: rgba(255,255,255,0.05); }
 }
 .stat-label {
   font-family: 'DM Mono', monospace;
@@ -1364,3 +1349,14 @@ body.modal-open { overflow: hidden; }
     gap:12px;
 
 }
+
+/* ── [hidden] fix ────────────────────────────────────────────────
+   Several classes above (.dataset-warning, .book-rating-wrap,
+   .book-stat, .no-rec-msg, .auth-user-area, .book-cover-placeholder,
+   .page-error, .btn-primary, etc.) set their own `display` value.
+   An element's own class rule always beats the browser's built-in
+   `[hidden] { display: none }` rule, so toggling the `hidden`
+   attribute in JS silently stopped hiding these elements — that's
+   what caused the empty warning banner. This single rule restores
+   `hidden` as the final word for every element on the page. */
+[hidden] { display: none !important; }
