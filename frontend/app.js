@@ -361,6 +361,13 @@ document.querySelectorAll(".chat-pill").forEach(pill => {
    Uses the existing API_BASE constant defined at the top of this file.
 ═══════════════════════════════════════════════════════════════ */
 
+// NOTE: index.html currently has no scan-cover button/input markup
+// (only the "or" divider placeholder). These will be null until that
+// markup is added — every use below is guarded so the rest of the
+// page still works instead of crashing on load.
+const scanBtn   = document.getElementById("scan-btn");
+const scanInput = document.getElementById("scan-input");
+
 /* ── Loading state helpers ───────────────────────────────────── */
 /**
  * Toggle the scan button between its idle and loading states.
@@ -493,29 +500,33 @@ async function handleScan(file) {
 }
 
 /* ── Event: scan button click → open file picker ─────────────── */
-scanBtn.addEventListener("click", () => {
-  // Reset value so the same file can be re-selected after an error
-  scanInput.value = "";
-  scanInput.click();
-});
+if (scanBtn && scanInput) {
+  scanBtn.addEventListener("click", () => {
+    // Reset value so the same file can be re-selected after an error
+    scanInput.value = "";
+    scanInput.click();
+  });
 
-/* ── Event: file selected → validate + start scan ────────────── */
-scanInput.addEventListener("change", () => {
-  const file = scanInput.files[0];
-  if (!file) return;
+  /* ── Event: file selected → validate + start scan ────────────── */
+  scanInput.addEventListener("change", () => {
+    const file = scanInput.files[0];
+    if (!file) return;
 
-  // Must be an image
-  if (!file.type.startsWith("image/")) {
-    showScanError("Please select an image file (JPG, PNG, WEBP, etc.).");
-    return;
-  }
+    // Must be an image
+    if (!file.type.startsWith("image/")) {
+      showScanError("Please select an image file (JPG, PNG, WEBP, etc.).");
+      return;
+    }
 
-  // Reject very large images (>10 MB) — base64 overhead + API limits
-  const MAX_BYTES = 10 * 1024 * 1024;
-  if (file.size > MAX_BYTES) {
-    showScanError("Image is too large (max 10 MB). Please use a smaller photo.");
-    return;
-  }
+    // Reject very large images (>10 MB) — base64 overhead + API limits
+    const MAX_BYTES = 10 * 1024 * 1024;
+    if (file.size > MAX_BYTES) {
+      showScanError("Image is too large (max 10 MB). Please use a smaller photo.");
+      return;
+    }
 
-  handleScan(file);
-});
+    handleScan(file);
+  });
+} else {
+  console.warn("Scan cover UI elements (#scan-btn / #scan-input) not found in index.html — scan feature disabled.");
+}
