@@ -238,11 +238,13 @@ function buildRecCard(rec, index) {
   card.className = "rec-card glass-card";
   card.style.animationDelay = `${index * 80}ms`;
 
-  // Cover: rec.thumbnail may come from the backend (google_book data on the rec)
-  // The backend returns title/genre/explanation/shared_themes for each rec.
-  // There is no per-rec thumbnail from the current API — use a placeholder
-  // styled with the genre colour for now, and let the View Details page load the cover.
-  const coverHtml = `
+  // Cover: the backend now looks up each recommendation's cover via
+  // Google Books and sends it as rec.thumbnail. Fall back to the
+  // genre-coloured placeholder if there's no thumbnail, or if the
+  // image URL fails to load.
+  const coverHtml = rec.thumbnail
+    ? `<div class="rec-cover-wrap"><img class="rec-cover-img" src="${esc(rec.thumbnail)}" alt="${esc(rec.title)}"></div>`
+    : `
     <div class="rec-cover-wrap">
       <div class="rec-cover-placeholder">
         <svg viewBox="0 0 60 80" fill="none">
@@ -275,6 +277,19 @@ function buildRecCard(rec, index) {
   card.querySelector(".btn-view-details").addEventListener("click", () => {
     goToBook(rec.title);
   });
+
+  const coverImg = card.querySelector(".rec-cover-img");
+  if (coverImg) {
+    coverImg.onerror = () => {
+      coverImg.closest(".rec-cover-wrap").innerHTML = `
+        <div class="rec-cover-placeholder">
+          <svg viewBox="0 0 60 80" fill="none">
+            <rect width="60" height="80" rx="4" fill="var(--accent-lt)"/>
+            <path d="M12 28h36M12 40h24M12 52h30" stroke="var(--accent-md)" stroke-width="3" stroke-linecap="round"/>
+          </svg>
+        </div>`;
+    };
+  }
 
   return card;
 }
