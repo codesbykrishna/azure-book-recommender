@@ -47,7 +47,9 @@ def _chat_completion(messages, max_tokens=300, temperature=0.7):
         data = resp.json()
         return data["choices"][0]["message"]["content"].strip()
     except Exception as exc:
-        logging.error(f"Azure OpenAI call failed: {exc}")
+        body_text = getattr(exc, "response", None)
+        body_text = body_text.text if body_text is not None else ""
+        logging.error(f"Azure OpenAI call failed: {exc} | response body: {body_text}")
         return None
 
 
