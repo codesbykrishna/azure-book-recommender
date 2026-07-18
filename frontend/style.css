@@ -917,6 +917,12 @@ a.logo {
   width: 60px;
   height: 80px;
 }
+.rec-cover-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
 
 .rec-card-body {
   display: flex;
