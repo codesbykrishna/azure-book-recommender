@@ -91,7 +91,11 @@ def _dataset_lookup(google_title, data):
 def _build_recommendations(liked_book, data, language, top_n):
     """
     Run the existing recommendation engine and return the formatted list.
-    Recommendations come ONLY from the dataset — never from Google Books.
+    The recommended BOOKS themselves come only from the dataset — never
+    from Google Books — but we do call Google Books per recommendation
+    just to fetch a cover thumbnail for display. If that lookup fails or
+    Google has no cover for that title, thumbnail is simply None and the
+    frontend falls back to its placeholder.
     """
     top_matches     = get_recommendations(liked_book, data, top_n=top_n)
     recommendations = []
@@ -99,6 +103,17 @@ def _build_recommendations(liked_book, data, language, top_n):
     for score, book, shared_phrases in top_matches:
         explanation_en = generate_recommendation_explanation(liked_book, book, shared_phrases)
         explanation    = translate_text(explanation_en, language)
+
+        thumbnail = None
+        try:
+            gb = search_book(book["title"])
+            if gb and gb.get("thumbnail"):
+                thumbnail = gb["thumbnail"]
+                if thumbnail.startswith("http://"):
+                    thumbnail = thumbnail.replace("http://", "https://", 1)
+        except Exception as exc:
+            logging.warning(f"_build_recommendations: cover lookup failed for '{book['title']}': {exc}")
+
         recommendations.append({
             "index":         book["index"],
             "title":         book["title"],
@@ -106,6 +121,7 @@ def _build_recommendations(liked_book, data, language, top_n):
             "score":         round(score, 3),
             "shared_themes": shared_phrases[:5],
             "explanation":   explanation,
+            "thumbnail":     thumbnail,
         })
 
     return recommendations
