@@ -119,21 +119,6 @@ function showContent() {
   hide(pageLoading);
   hide(pageError);
   show(pageContent);
-  // Force visibility in case CSS is overriding
-  if (pageContent) {
-    pageContent.style.display = "block";
-    pageContent.style.visibility = "visible";
-    pageContent.style.opacity = "1";
-    pageContent.removeAttribute("hidden");
-  }
-  if (pageLoading) {
-    pageLoading.style.display = "none";
-    pageLoading.setAttribute("hidden", "");
-  }
-  if (pageError) {
-    pageError.style.display = "none";
-    pageError.setAttribute("hidden", "");
-  }
 }
 
 /* ─── Render book cover ─────────────────────────────────────── */
@@ -337,6 +322,7 @@ async function init() {
   const params = new URLSearchParams(window.location.search);
   const titleFromUrl = (params.get("title") || "").trim();
   const language = params.get("language") || "en";
+  const topN = parseInt(params.get("top_n")) || 5;
   /* ── PATH A: Scan Book Cover ─────────────────────────────────
      When the user scanned a cover, app.js stored the full backend
      response in sessionStorage under "bookDetails" and redirected
@@ -393,7 +379,7 @@ async function init() {
       body: JSON.stringify({
         title:    titleFromUrl,
         language: language,
-        top_n:    5,
+        top_n:    topN,
       }),
     });
 
@@ -425,25 +411,10 @@ async function init() {
   }
 
   // Render everything
-  console.log("Calling showContent...");
   showContent();
-  console.log("page-content hidden:", pageContent ? pageContent.hidden : "element not found");
-  console.log("Rendering book details for:", gb.title);
-  try {
-    renderBookDetails(gb);
-    console.log("renderBookDetails done");
-  } catch(e) {
-    console.error("renderBookDetails failed:", e);
-    showError("Render error: " + e.message);
-    return;
-  }
-  try {
-    renderDatasetWarning(data.in_dataset, data.unavailable_msg);
-    renderRecommendations(data.recommendations, data.unavailable_msg);
-    console.log("All rendering complete");
-  } catch(e) {
-    console.error("Render recommendations failed:", e);
-  }
+  renderBookDetails(gb);
+  renderDatasetWarning(data.in_dataset, data.unavailable_msg);
+  renderRecommendations(data.recommendations, data.unavailable_msg);
 }
 
 // Kick off on DOM ready
