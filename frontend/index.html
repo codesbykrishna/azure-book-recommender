@@ -52,7 +52,7 @@
         <div id="auth-error" class="auth-error" hidden></div>
 
         <!-- Microsoft login button — MSAL popup handles email/password inside Entra UI -->
-        <button type="button" id="auth-ms-btn" class="auth-ms-btn">
+        <button type="submit" class="auth-ms-btn">
           <svg viewBox="0 0 21 21" width="20" height="20" fill="none">
             <rect x="1" y="1" width="9" height="9" fill="#F35325"/>
             <rect x="11" y="1" width="9" height="9" fill="#81BC06"/>
@@ -78,13 +78,54 @@
 
   <!-- ── Hero ───────────────────────────────────────────────── -->
   <section class="hero">
-    <p class="hero-eyebrow">Powered by Azure AI</p>
     <h1 class="hero-headline">
       Every great book<br/>
       <em>leads to another.</em>
     </h1>
     <p class="hero-sub">Tell us a book you love. We'll explain exactly why you'll love your next one.</p>
   </section>
+
+  <!-- ── Doodle banner ──────────────────────────────────────── -->
+  <div class="hero-doodle" aria-hidden="true">
+    <svg viewBox="0 0 1200 130" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMidYMid meet">
+      <!-- stack of books -->
+      <g transform="translate(90,55) rotate(-6)" fill="none" stroke="#1A1A18" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <rect x="-38" y="18" width="76" height="14" rx="2"/>
+        <rect x="-32" y="4" width="64" height="14" rx="2" transform="rotate(-3 0 11)"/>
+        <rect x="-30" y="-11" width="60" height="14" rx="2" transform="rotate(4 0 -4)"/>
+      </g>
+
+      <!-- open book -->
+      <g transform="translate(360,60)" fill="none" stroke="#1A1A18" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M0 -18 C -22 -26 -42 -22 -42 -22 L -42 20 C -42 20 -22 16 0 24 Z"/>
+        <path d="M0 -18 C 22 -26 42 -22 42 -22 L 42 20 C 42 20 22 16 0 24 Z"/>
+        <path d="M-30 -14 L -8 -8 M-30 -2 L -8 3 M-30 10 L -8 15" stroke-width="1.5"/>
+        <path d="M30 -14 L 8 -8 M30 -2 L 8 3 M30 10 L 8 15" stroke-width="1.5"/>
+      </g>
+
+      <!-- bookmark -->
+      <g transform="translate(660,45) rotate(8)" fill="none" stroke="#1A1A18" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M-14 -30 L 14 -30 L 14 32 L 0 18 L -14 32 Z"/>
+      </g>
+
+      <!-- sparkle marks -->
+      <g stroke="#1A1A18" stroke-width="2" stroke-linecap="round">
+        <path d="M250 20 L250 32 M244 26 L256 26"/>
+        <path d="M770 90 L770 100 M765 95 L775 95"/>
+        <path d="M480 95 L480 103 M476 99 L484 99"/>
+      </g>
+
+      <!-- small stack of books #2 -->
+      <g transform="translate(940,70) rotate(5)" fill="none" stroke="#1A1A18" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <rect x="-30" y="14" width="60" height="12" rx="2"/>
+        <rect x="-25" y="2" width="50" height="12" rx="2" transform="rotate(-4 0 8)"/>
+      </g>
+
+      <!-- connecting squiggle -->
+      <path d="M180 75 C 230 90, 280 55, 320 70" fill="none" stroke="#1A1A18" stroke-width="1.5" stroke-linecap="round" opacity="0.5"/>
+      <path d="M770 55 C 820 40, 860 65, 900 60" fill="none" stroke="#1A1A18" stroke-width="1.5" stroke-linecap="round" opacity="0.5"/>
+    </svg>
+  </div>
 
   <!-- ═══════════════════════════════════════════════════════════
        VIEW 1 — RECOMMENDATION
@@ -239,7 +280,6 @@
 
   <!-- ── Footer ──────────────────────────────────────────────── -->
   <footer class="site-footer">
-    <p>Built with Azure AI Language · Azure OpenAI · Azure Translator · Azure Functions</p>
   </footer>
 
   <script src="auth.js"></script>
