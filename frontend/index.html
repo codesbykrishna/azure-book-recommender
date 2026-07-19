@@ -85,45 +85,44 @@
     <p class="hero-sub">Tell us a book you love. We'll explain exactly why you'll love your next one.</p>
   </section>
 
-  <!-- ── Doodle banner ──────────────────────────────────────── -->
-  <div class="hero-doodle" aria-hidden="true">
-    <svg viewBox="0 0 1200 130" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMidYMid meet">
+  <!-- ── Side doodles (decorative, don't affect layout) ───────── -->
+  <div class="side-doodle side-doodle-left" aria-hidden="true">
+    <svg viewBox="0 0 220 260" xmlns="http://www.w3.org/2000/svg" fill="none" stroke="#1A1A18" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
       <!-- stack of books -->
-      <g transform="translate(90,55) rotate(-6)" fill="none" stroke="#1A1A18" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <g transform="translate(70,60) rotate(-6)">
         <rect x="-38" y="18" width="76" height="14" rx="2"/>
         <rect x="-32" y="4" width="64" height="14" rx="2" transform="rotate(-3 0 11)"/>
         <rect x="-30" y="-11" width="60" height="14" rx="2" transform="rotate(4 0 -4)"/>
       </g>
+      <!-- squiggle -->
+      <path d="M20 140 C 60 155, 100 120, 150 135" opacity="0.5" stroke-width="1.5"/>
+      <!-- bookmark -->
+      <g transform="translate(60,205) rotate(-4)">
+        <path d="M-14 -28 L 14 -28 L 14 30 L 0 17 L -14 30 Z"/>
+      </g>
+      <!-- sparkle -->
+      <path d="M170 60 L170 72 M164 66 L176 66"/>
+    </svg>
+  </div>
 
+  <div class="side-doodle side-doodle-right" aria-hidden="true">
+    <svg viewBox="0 0 220 260" xmlns="http://www.w3.org/2000/svg" fill="none" stroke="#1A1A18" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
       <!-- open book -->
-      <g transform="translate(360,60)" fill="none" stroke="#1A1A18" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <g transform="translate(110,70)">
         <path d="M0 -18 C -22 -26 -42 -22 -42 -22 L -42 20 C -42 20 -22 16 0 24 Z"/>
         <path d="M0 -18 C 22 -26 42 -22 42 -22 L 42 20 C 42 20 22 16 0 24 Z"/>
         <path d="M-30 -14 L -8 -8 M-30 -2 L -8 3 M-30 10 L -8 15" stroke-width="1.5"/>
         <path d="M30 -14 L 8 -8 M30 -2 L 8 3 M30 10 L 8 15" stroke-width="1.5"/>
       </g>
-
-      <!-- bookmark -->
-      <g transform="translate(660,45) rotate(8)" fill="none" stroke="#1A1A18" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-        <path d="M-14 -30 L 14 -30 L 14 32 L 0 18 L -14 32 Z"/>
-      </g>
-
-      <!-- sparkle marks -->
-      <g stroke="#1A1A18" stroke-width="2" stroke-linecap="round">
-        <path d="M250 20 L250 32 M244 26 L256 26"/>
-        <path d="M770 90 L770 100 M765 95 L775 95"/>
-        <path d="M480 95 L480 103 M476 99 L484 99"/>
-      </g>
-
-      <!-- small stack of books #2 -->
-      <g transform="translate(940,70) rotate(5)" fill="none" stroke="#1A1A18" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <!-- squiggle -->
+      <path d="M50 150 C 90 135, 120 165, 170 155" opacity="0.5" stroke-width="1.5"/>
+      <!-- small stack of books -->
+      <g transform="translate(150,210) rotate(5)">
         <rect x="-30" y="14" width="60" height="12" rx="2"/>
         <rect x="-25" y="2" width="50" height="12" rx="2" transform="rotate(-4 0 8)"/>
       </g>
-
-      <!-- connecting squiggle -->
-      <path d="M180 75 C 230 90, 280 55, 320 70" fill="none" stroke="#1A1A18" stroke-width="1.5" stroke-linecap="round" opacity="0.5"/>
-      <path d="M770 55 C 820 40, 860 65, 900 60" fill="none" stroke="#1A1A18" stroke-width="1.5" stroke-linecap="round" opacity="0.5"/>
+      <!-- sparkle -->
+      <path d="M40 210 L40 222 M34 216 L46 216"/>
     </svg>
   </div>
 
