@@ -1355,25 +1355,30 @@ body.modal-open { overflow: hidden; }
     gap:12px;
 
 }
-/* ── Hero doodle banner ─────────────────────────────────────────
-   Added: scattered book/reading icons above the search card. */
-.hero-doodle {
-  width: 100%;
-  max-width: 1200px;
-  margin: 8px auto 20px;
-  padding: 0 24px;
-  opacity: 0.85;
+/* ── Side doodles ─────────────────────────────────────────────
+   Decorative only — position:absolute takes these OUT of normal
+   document flow, so they float at the page edges without pushing
+   the hero/search card down or affecting layout at all. */
+.side-doodle {
+  position: absolute;
+  top: 90px;
+  width: 220px;
+  height: 260px;
+  opacity: 0.8;
+  pointer-events: none;   /* clicks pass through to whatever's underneath */
+  z-index: 0;
 }
-.hero-doodle svg {
-  width: 100%;
-  height: auto;
-  max-height: 110px;
-  display: block;
-}
-@media (max-width: 640px) {
-  .hero-doodle { display: none; } /* keep mobile hero compact */
-}
+.side-doodle svg { width: 100%; height: 100%; display: block; }
+.side-doodle-left  { left: 0; }
+.side-doodle-right { right: 0; }
 
+/* Make sure real content (search card etc.) stays above the doodles */
+.search-card { position: relative; z-index: 1; }
+
+/* Hide on smaller screens where there's no spare side margin */
+@media (max-width: 1200px) {
+  .side-doodle { display: none; }
+}
 /* ── [hidden] fix ────────────────────────────────────────────────
    Several classes above (.dataset-warning, .book-rating-wrap,
    .book-stat, .no-rec-msg, .auth-user-area, .book-cover-placeholder,
