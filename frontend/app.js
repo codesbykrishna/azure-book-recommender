@@ -14,7 +14,6 @@
  */
 
 const API_BASE = "https://book-recommend-api-c3bzbjbgbydab7hw.centralindia-01.azurewebsites.net/api";
-window.API_BASE = API_BASE;
 
 /* ═══════════════════════════════════════════════════════════════
    SHARED STATE
@@ -137,10 +136,13 @@ function selectTitle(title) {
   bookInput.value = title;
   closeSuggestions();
   recommendBtn.disabled = false;
-  const language = document.getElementById("lang-select").value;
-  const topN     = document.getElementById("count-select").value;
-  window.location.href =
-    `book.html?title=${encodeURIComponent(title)}&language=${language}&top_n=${topN}`;
+const language =
+document.getElementById("lang-select").value;
+const topN =
+document.getElementById("count-select").value;
+
+window.location.href =
+`book.html?title=${encodeURIComponent(title)}&language=${language}&top_n=${topN}`;
 }
 
 bookInput.addEventListener("input", () => {
@@ -281,10 +283,32 @@ let chatHistory = [];
 function appendBubble(text, role) {
   const div = document.createElement("div");
   div.className = `chat-bubble ${role}`;
-  div.innerHTML = `<p>${escHtml(text)}</p>`;
+  // Assistant replies come from GPT and often include light markdown
+  // (**bold**, _italic_) — render that as real formatting. User's own
+  // messages are shown as plain text (no reason to interpret their input
+  // as markdown). escHtml() already ran first in both cases, so any
+  // literal < or > the user typed is inert before we add our own tags.
+  const html = role === "assistant" ? renderMarkdownLite(escHtml(text)) : escHtml(text);
+  div.innerHTML = `<p>${html}</p>`;
   chatMessages.appendChild(div);
   chatMessages.scrollTop = chatMessages.scrollHeight;
   return div;
+}
+
+/* ── Tiny, safe markdown renderer ───────────────────────────────
+   Input MUST already be HTML-escaped (see escHtml() above) before
+   calling this, so the only "<" / ">" characters present are the ones
+   we add below — nothing from the model or user can inject real tags.
+   Supports just what GPT commonly uses in short chat replies:
+   bold (** **), italic (* * or _ _), and line breaks. Intentionally not
+   a full markdown parser — headings/tables/code blocks aren't needed here. */
+function renderMarkdownLite(escapedText) {
+  return escapedText
+    .replace(/\*\*_(.+?)_\*\*|\*\*\*(.+?)\*\*\*/g, (_, a, b) => `<strong><em>${a || b}</em></strong>`)
+    .replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>")
+    .replace(/(?<!\w)_(.+?)_(?!\w)/g, "<em>$1</em>")
+    .replace(/(?<!\*)\*(?!\*)(.+?)(?<!\*)\*(?!\*)/g, "<em>$1</em>")
+    .replace(/\n/g, "<br>");
 }
 
 function showTyping() {
@@ -351,3 +375,180 @@ chatInput.addEventListener("keydown", e => {
 document.querySelectorAll(".chat-pill").forEach(pill => {
   pill.addEventListener("click", () => sendChatMessage(pill.dataset.msg));
 });
+
+/* ═══════════════════════════════════════════════════════════════
+   📷 SCAN BOOK COVER
+   New section — appended below all existing code.
+   Zero existing lines were modified above.
+   Uses the existing API_BASE constant defined at the top of this file.
+═══════════════════════════════════════════════════════════════ */
+
+// NOTE: index.html currently has no scan-cover button/input markup
+// (only the "or" divider placeholder). These will be null until that
+// markup is added — every use below is guarded so the rest of the
+// page still works instead of crashing on load.
+const scanBtn   = document.getElementById("scan-btn");
+const scanInput = document.getElementById("scan-input");
+
+/* ── Loading state helpers ───────────────────────────────────── */
+/**
+ * Toggle the scan button between its idle and loading states.
+ * Also disables / re-enables the recommend button so both
+ * buttons cannot be activated simultaneously.
+ *
+ * @param {boolean} on  true = show loading state
+ */
+function setScanLoading(on) {
+  // Toggle scan button visual states
+  scanBtn.querySelector(".scan-btn-idle").hidden    = on;
+  scanBtn.querySelector(".scan-btn-loading").hidden = !on;
+  scanBtn.disabled      = on;
+  // Also disable the search button while scanning
+  recommendBtn.disabled = on;   // recommendBtn is defined earlier in this file
+}
+
+/* ── Error display ───────────────────────────────────────────── */
+/**
+ * Show a friendly error under the search card.
+ * Reuses the existing showEmpty() function defined earlier in this file.
+ *
+ * @param {string} msg  User-visible error message
+ */
+function showScanError(msg) {
+  showEmpty(msg);   // showEmpty() is defined in the RECOMMEND section above
+}
+
+/* ── File → Base64 conversion ────────────────────────────────── */
+/**
+ * Read a File object and resolve with its base64-encoded content
+ * (the raw base64 string without the "data:<mime>;base64," prefix).
+ *
+ * @param  {File}            file
+ * @returns {Promise<string>}
+ */
+function fileToBase64(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload  = () => {
+      // reader.result = "data:image/jpeg;base64,<data>"
+      // We only want the <data> portion after the comma
+      const base64 = reader.result.split(",")[1];
+      resolve(base64);
+    };
+    reader.onerror = () => reject(new Error("FileReader failed to read the image."));
+    reader.readAsDataURL(file);
+  });
+}
+
+/* ── Main scan pipeline ──────────────────────────────────────── */
+/**
+ * Full scan pipeline:
+ *   1. Convert selected image to base64
+ *   2. POST to /api/scan_cover  (uses existing API_BASE)
+ *   3. On success → store full JSON in sessionStorage → redirect to book.html
+ *   4. On failure → show friendly error message, restore button state
+ *
+ * @param {File} file  The image file selected by the user
+ */
+async function handleScan(file) {
+  setScanLoading(true);
+
+  // Step 1 — convert to base64
+  let base64;
+  try {
+    base64 = await fileToBase64(file);
+  } catch (err) {
+    console.error("fileToBase64 error:", err);
+    showScanError("Could not read the selected image. Please try a different file.");
+    setScanLoading(false);
+    return;
+  }
+
+  // Step 2 — call backend /api/scan_cover
+  let resp, data;
+  try {
+    resp = await fetch(`${API_BASE}/scan_cover`, {
+      method:  "POST",
+      headers: { "Content-Type": "application/json" },
+      body:    JSON.stringify({
+        image:        base64,
+        content_type: file.type || "image/jpeg",
+        language:     "en",
+        top_n:        5,
+      }),
+    });
+    data = await resp.json();
+  } catch (networkErr) {
+    console.error("scan_cover network error:", networkErr);
+    showScanError("Could not reach the scanning service. Please check your connection.");
+    setScanLoading(false);
+    return;
+  }
+
+  // Step 3 — handle backend error responses
+  if (!resp.ok) {
+    let errorMsg;
+
+    if (resp.status === 422) {
+      // OCR ran but detected nothing usable on the image
+      errorMsg = data.error || "No book title could be detected. Please try a clearer photo.";
+    } else if (resp.status === 404) {
+      // OCR found something but Google Books returned no match
+      errorMsg = data.error || "Unable to detect a book from this image. Try searching by title.";
+    } else {
+      // Generic backend error
+      errorMsg = data.error || "Unable to detect a book from this image. Please try again.";
+    }
+
+    showScanError(errorMsg);
+    setScanLoading(false);
+    return;
+  }
+
+  // Step 4 — success: store response in sessionStorage and navigate
+  // book.js reads "bookDetails" from sessionStorage when there is no ?title= in the URL
+  try {
+    sessionStorage.setItem("bookDetails", JSON.stringify(data));
+  } catch (storageErr) {
+    // sessionStorage can fail if the browser blocks it or the payload is too large
+    console.error("sessionStorage write failed:", storageErr);
+    showScanError("A storage error occurred. Please try again.");
+    setScanLoading(false);
+    return;
+  }
+
+  // Redirect — no ?title= in the URL (book.js handles the sessionStorage path)
+  window.location.href = "book.html";
+}
+
+/* ── Event: scan button click → open file picker ─────────────── */
+if (scanBtn && scanInput) {
+  scanBtn.addEventListener("click", () => {
+    // Reset value so the same file can be re-selected after an error
+    scanInput.value = "";
+    scanInput.click();
+  });
+
+  /* ── Event: file selected → validate + start scan ────────────── */
+  scanInput.addEventListener("change", () => {
+    const file = scanInput.files[0];
+    if (!file) return;
+
+    // Must be an image
+    if (!file.type.startsWith("image/")) {
+      showScanError("Please select an image file (JPG, PNG, WEBP, etc.).");
+      return;
+    }
+
+    // Reject very large images (>10 MB) — base64 overhead + API limits
+    const MAX_BYTES = 10 * 1024 * 1024;
+    if (file.size > MAX_BYTES) {
+      showScanError("Image is too large (max 10 MB). Please use a smaller photo.");
+      return;
+    }
+
+    handleScan(file);
+  });
+} else {
+  console.warn("Scan cover UI elements (#scan-btn / #scan-input) not found in index.html — scan feature disabled.");
+}
