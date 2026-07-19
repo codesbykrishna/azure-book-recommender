@@ -1355,28 +1355,33 @@ body.modal-open { overflow: hidden; }
     gap:12px;
 
 }
-/* ── Side doodles ─────────────────────────────────────────────
-   Decorative only — position:absolute takes these OUT of normal
-   document flow, so they float at the page edges without pushing
-   the hero/search card down or affecting layout at all. */
+/* ── Side doodles (v2) ───────────────────────────────────────────
+   Nested INSIDE .hero and positioned relative to it, so they are
+   vertically locked to the hero box itself and can never affect
+   the search card's position, no matter what. The
+   calc(50% - 50vw) trick breaks them out to the true left/right
+   edges of the browser window even though .hero is a centered,
+   max-width column. */
+.hero { position: relative; }
 .side-doodle {
   position: absolute;
-  top: 90px;
+  top: 50%;
+  transform: translateY(-50%);
   width: 220px;
   height: 260px;
   opacity: 0.8;
-  pointer-events: none;   /* clicks pass through to whatever's underneath */
+  pointer-events: none;
   z-index: 0;
 }
+.side-doodle-left  { left:  calc(50% - 50vw); }
+.side-doodle-right { right: calc(50% - 50vw); }
 .side-doodle svg { width: 100%; height: 100%; display: block; }
-.side-doodle-left  { left: 0; }
-.side-doodle-right { right: 0; }
 
 /* Make sure real content (search card etc.) stays above the doodles */
 .search-card { position: relative; z-index: 1; }
 
 /* Hide on smaller screens where there's no spare side margin */
-@media (max-width: 1200px) {
+@media (max-width: 1400px) {
   .side-doodle { display: none; }
 }
 /* ── [hidden] fix ────────────────────────────────────────────────
