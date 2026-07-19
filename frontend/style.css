@@ -1355,6 +1355,24 @@ body.modal-open { overflow: hidden; }
     gap:12px;
 
 }
+/* ── Hero doodle banner ─────────────────────────────────────────
+   Added: scattered book/reading icons above the search card. */
+.hero-doodle {
+  width: 100%;
+  max-width: 1200px;
+  margin: 8px auto 20px;
+  padding: 0 24px;
+  opacity: 0.85;
+}
+.hero-doodle svg {
+  width: 100%;
+  height: auto;
+  max-height: 110px;
+  display: block;
+}
+@media (max-width: 640px) {
+  .hero-doodle { display: none; } /* keep mobile hero compact */
+}
 
 /* ── [hidden] fix ────────────────────────────────────────────────
    Several classes above (.dataset-warning, .book-rating-wrap,
