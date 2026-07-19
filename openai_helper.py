@@ -2,11 +2,20 @@
 Helper functions for calling an Azure OpenAI model deployed through
 Azure AI Foundry.
 
+This deployment (gpt-5.4) uses the newer Responses API
+(POST {endpoint}/openai/v1/responses), confirmed from the Endpoint field
+shown on the deployment's own page in Azure AI Foundry — NOT the legacy
+Chat Completions API (POST {endpoint}/openai/deployments/{name}/chat/completions).
+These are genuinely different request/response shapes, not just a
+different URL path for the same thing.
+
 Required environment variables (set as Function App settings):
-  AZURE_OPENAI_ENDPOINT     e.g. https://<your-resource>.openai.azure.com/
+  AZURE_OPENAI_ENDPOINT     e.g. https://<your-resource>.services.ai.azure.com
   AZURE_OPENAI_KEY          API key for the Azure OpenAI / Foundry resource
-  AZURE_OPENAI_DEPLOYMENT   the deployment name, e.g. "gpt-4o-mini"
-  AZURE_OPENAI_API_VERSION  e.g. "2024-08-01-preview" (optional, has default)
+  AZURE_OPENAI_DEPLOYMENT   the deployment name, e.g. "gpt-5.4"
+
+AZURE_OPENAI_API_VERSION is no longer used — the v1 Responses API is
+GA and doesn't take an api-version query param.
 """
 
 import os
@@ -14,38 +23,71 @@ import json
 import logging
 import requests
 
-AZURE_OPENAI_ENDPOINT = os.environ.get("AZURE_OPENAI_ENDPOINT", "")
-AZURE_OPENAI_KEY = os.environ.get("AZURE_OPENAI_KEY", "")
+AZURE_OPENAI_ENDPOINT   = os.environ.get("AZURE_OPENAI_ENDPOINT", "")
+AZURE_OPENAI_KEY        = os.environ.get("AZURE_OPENAI_KEY", "")
 AZURE_OPENAI_DEPLOYMENT = os.environ.get("AZURE_OPENAI_DEPLOYMENT", "")
-AZURE_OPENAI_API_VERSION = os.environ.get("AZURE_OPENAI_API_VERSION", "2024-08-01-preview")
+
+
+def _extract_output_text(data):
+    """
+    Pull the assistant's text out of a Responses API JSON body.
+    Shape: {"output": [ {"type": "message", "content": [ {"type": "output_text", "text": "..."} ] } ]}
+    There can be other item types (e.g. reasoning items) mixed into
+    "output" — skip anything that isn't a message/output_text pair.
+    """
+    for item in data.get("output", []):
+        if item.get("type") != "message":
+            continue
+        for content_item in item.get("content", []):
+            if content_item.get("type") == "output_text" and content_item.get("text"):
+                return content_item["text"].strip()
+    return None
 
 
 def _chat_completion(messages, max_tokens=300, temperature=0.7):
-    """Low-level call to the Azure OpenAI chat completions endpoint."""
+    """
+    Low-level call to the Azure OpenAI Responses API.
+    `messages` is the familiar [{"role": ..., "content": ...}, ...] list —
+    we split the leading "system" message out into "instructions" and
+    send the rest as "input", since that's what the Responses API expects.
+    `temperature` is accepted for signature compatibility with existing
+    callers but intentionally NOT sent — gpt-5-class models reject any
+    value other than the default and it's not worth two request shapes.
+    """
     if not (AZURE_OPENAI_ENDPOINT and AZURE_OPENAI_KEY and AZURE_OPENAI_DEPLOYMENT):
         logging.warning("Azure OpenAI not configured - skipping LLM call")
         return None
 
-    url = (
-        f"{AZURE_OPENAI_ENDPOINT.rstrip('/')}/openai/deployments/"
-        f"{AZURE_OPENAI_DEPLOYMENT}/chat/completions"
-        f"?api-version={AZURE_OPENAI_API_VERSION}"
-    )
+    url = f"{AZURE_OPENAI_ENDPOINT.rstrip('/')}/openai/v1/responses"
     headers = {
         "Content-Type": "application/json",
         "api-key": AZURE_OPENAI_KEY,
     }
+
+    instructions = None
+    input_items  = []
+    for m in messages:
+        if m.get("role") == "system" and instructions is None:
+            instructions = m.get("content", "")
+        else:
+            input_items.append({"role": m["role"], "content": m["content"]})
+
     body = {
-        "messages": messages,
-        "max_tokens": max_tokens,
-        "temperature": temperature,
+        "model":            AZURE_OPENAI_DEPLOYMENT,
+        "input":            input_items,
+        "max_output_tokens": max_tokens,
     }
+    if instructions:
+        body["instructions"] = instructions
 
     try:
         resp = requests.post(url, headers=headers, json=body, timeout=30)
         resp.raise_for_status()
         data = resp.json()
-        return data["choices"][0]["message"]["content"].strip()
+        text = _extract_output_text(data)
+        if text is None:
+            logging.error(f"Azure OpenAI response had no output_text: {json.dumps(data)[:500]}")
+        return text
     except Exception as exc:
         body_text = getattr(exc, "response", None)
         body_text = body_text.text if body_text is not None else ""
