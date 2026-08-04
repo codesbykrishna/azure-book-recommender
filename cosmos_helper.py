@@ -114,3 +114,40 @@ def update_user_profile(user_id: str, updates: dict) -> dict:
     item["updatedAt"] = now
     container.upsert_item(item)
     return item
+
+
+def toggle_favorite(user_id: str, book: dict) -> dict:
+    """
+    Add or remove a book from the user's favorites list (toggle behavior),
+    matched by dataset index. `book` should have at least "index"; "title"
+    and "genre" are stored alongside it so the frontend can render a
+    favorites list without a second lookup.
+
+    Returns {"favorites": [...], "isFavorite": bool} — the full updated
+    list plus whether this specific book ended up favorited or not.
+    """
+    container = _get_users_container()
+    item      = container.read_item(item=user_id, partition_key=user_id)
+    favorites = item.setdefault("favorites", [])
+
+    book_index    = book.get("index")
+    existing_idx  = next(
+        (i for i, f in enumerate(favorites) if f.get("index") == book_index),
+        None,
+    )
+
+    if existing_idx is not None:
+        favorites.pop(existing_idx)
+        is_favorite = False
+    else:
+        favorites.append({
+            "index":   book_index,
+            "title":   book.get("title", ""),
+            "genre":   book.get("genre", ""),
+            "addedAt": datetime.now(timezone.utc).isoformat(),
+        })
+        is_favorite = True
+
+    item["updatedAt"] = datetime.now(timezone.utc).isoformat()
+    container.upsert_item(item)
+    return {"favorites": favorites, "isFavorite": is_favorite}
