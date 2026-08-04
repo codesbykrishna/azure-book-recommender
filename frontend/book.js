@@ -258,10 +258,15 @@ function buildRecCard(rec, index) {
     .map(t => `<span class="theme-tag">${esc(t)}</span>`)
     .join("");
 
+  const heartHtml = window.Favorites ? window.Favorites.heartButtonHtml(rec) : "";
+
   card.innerHTML = `
     ${coverHtml}
     <div class="rec-card-body">
-      <span class="card-genre">${esc(rec.genre || "")}</span>
+      <div class="card-top-row">
+        <span class="card-genre">${esc(rec.genre || "")}</span>
+        ${heartHtml}
+      </div>
       <p class="rec-card-title">${esc(rec.title)}</p>
       <p class="rec-explanation">${esc(rec.explanation)}</p>
       ${themes ? `<div class="card-themes">${themes}</div>` : ""}
@@ -278,6 +283,8 @@ function buildRecCard(rec, index) {
     goToBook(rec.title);
   });
 
+  if (window.Favorites) window.Favorites.wireHeartButton(card, rec);
+
   const coverImg = card.querySelector(".rec-cover-img");
   if (coverImg) {
     coverImg.onerror = () => {
@@ -292,6 +299,23 @@ function buildRecCard(rec, index) {
   }
 
   return card;
+}
+
+/* ─── Render main book's favorite heart ─────────────────────── */
+function renderMainBookHeart(datasetBook, inDataset) {
+  const wrap = document.getElementById("main-book-heart-wrap");
+  if (!wrap) return;
+
+  if (!inDataset || !datasetBook || !window.Favorites) {
+    // Favoriting needs a dataset index — books outside the dataset
+    // (no recommendations available) can't be favorited either.
+    wrap.innerHTML = "";
+    return;
+  }
+
+  const book = { index: datasetBook.index, title: datasetBook.title, genre: datasetBook.genre };
+  wrap.innerHTML = window.Favorites.heartButtonHtml(book);
+  window.Favorites.wireHeartButton(wrap, book);
 }
 
 /* ─── Render recommendations ────────────────────────────────── */
@@ -368,6 +392,7 @@ async function init() {
     showContent();
     renderBookDetails(gb);
     renderDatasetWarning(data.in_dataset, data.unavailable_msg);
+    renderMainBookHeart(data.dataset_book, data.in_dataset);
     renderRecommendations(data.recommendations, data.unavailable_msg);
     return;   // ← done; skip the fetch below
   }
@@ -429,6 +454,7 @@ async function init() {
   showContent();
   renderBookDetails(gb);
   renderDatasetWarning(data.in_dataset, data.unavailable_msg);
+  renderMainBookHeart(data.dataset_book, data.in_dataset);
   renderRecommendations(data.recommendations, data.unavailable_msg);
 }
 
