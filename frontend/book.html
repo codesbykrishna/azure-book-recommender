@@ -3,26 +3,29 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Shelf — Book Recommendations</title>
+  <title>Book Details — Shelf</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=Inter:wght@400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="style.css" />
-  <!-- MSAL.js — Microsoft Authentication Library -->
   
 </head>
-<body>
+<body class="book-page">
 
   <!-- ── Header ─────────────────────────────────────────────── -->
   <header class="site-header">
     <div class="header-inner">
-      <span class="logo">shelf<span class="logo-dot">.</span></span>
+      <a href="index.html" class="logo">shelf<span class="logo-dot">.</span></a>
       <nav class="header-nav">
-        <button class="nav-tab active" data-view="recommend">Discover</button>
-        <button class="nav-tab" data-view="chat">Chat</button>
+        <a href="index.html" class="nav-back-btn">
+          <svg viewBox="0 0 20 20" fill="none" width="16" height="16">
+            <path d="M12 4L6 10l6 6" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+          Back to Discover
+        </a>
       </nav>
 
-      <!-- ── Auth area ────────────────────────────────────── -->
+      <!-- ── Auth area ──────────────────────────────────── -->
       <div id="auth-area" class="auth-area">
         <button id="auth-login-btn" class="auth-login-btn">Sign In</button>
         <div id="auth-user-area" class="auth-user-area" hidden>
@@ -33,255 +36,154 @@
     </div>
   </header>
 
-  <!-- ── Auth modal ─────────────────────────────────────────── -->
-  <div id="auth-modal" class="auth-modal" hidden role="dialog" aria-modal="true" aria-labelledby="auth-modal-title">
-    <div class="auth-modal-card glass-card">
-      <button id="auth-modal-close" class="auth-modal-close" aria-label="Close">
-        <svg viewBox="0 0 20 20" fill="none" width="18" height="18">
-          <path d="M5 5l10 10M15 5L5 15" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
-        </svg>
-      </button>
-
-      <div class="auth-modal-header">
-        <span class="logo" style="font-size:1.3rem">shelf<span class="logo-dot">.</span></span>
-        <h2 id="auth-modal-title" class="auth-modal-title">Welcome back</h2>
-        <p class="auth-modal-sub">Sign in to save favorites and view history</p>
-      </div>
-
-      <form id="auth-login-form" class="auth-form" novalidate>
-        <div id="auth-error" class="auth-error" hidden></div>
-
-        <!-- Microsoft login button — MSAL popup handles email/password inside Entra UI -->
-        <button type="submit" class="auth-ms-btn">
-          <svg viewBox="0 0 21 21" width="20" height="20" fill="none">
-            <rect x="1" y="1" width="9" height="9" fill="#F35325"/>
-            <rect x="11" y="1" width="9" height="9" fill="#81BC06"/>
-            <rect x="1" y="11" width="9" height="9" fill="#05A6F0"/>
-            <rect x="11" y="11" width="9" height="9" fill="#FFBA08"/>
-          </svg>
-          Continue with Microsoft
-        </button>
-
-        <label class="auth-remember-label">
-          <input type="checkbox" id="auth-remember" class="auth-remember-checkbox" />
-          Remember me
-        </label>
-      </form>
-
-      <p class="auth-terms">
-        By signing in, you agree to our
-        <a href="#" class="auth-link">Terms of Service</a> and
-        <a href="#" class="auth-link">Privacy Policy</a>.
-      </p>
+  <!-- ── Loading state ──────────────────────────────────────── -->
+  <div id="page-loading" class="page-loading">
+    <div class="page-spinner">
+      <svg viewBox="0 0 50 50" fill="none">
+        <circle cx="25" cy="25" r="20" stroke="var(--accent-md)" stroke-width="4"/>
+        <path d="M25 5 A20 20 0 0 1 45 25" stroke="var(--accent)" stroke-width="4" stroke-linecap="round"/>
+      </svg>
+      <p>Loading book details…</p>
     </div>
   </div>
 
-  <!-- ── Hero ───────────────────────────────────────────────── -->
-  <section class="hero">
-    <h1 class="hero-headline">
-      Every great book<br/>
-      <em>leads to another.</em>
-    </h1>
-    <p class="hero-sub">Tell us a book you love. We'll explain exactly why you'll love your next one.</p>
-
-    <!-- ── Side doodles (decorative, don't affect layout) ───────── -->
-    <div class="side-doodle side-doodle-left" aria-hidden="true">
-      <svg viewBox="0 0 220 260" xmlns="http://www.w3.org/2000/svg" fill="none" stroke="#1A1A18" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-        <!-- stack of books -->
-        <g transform="translate(70,60) rotate(-6)">
-          <rect x="-38" y="18" width="76" height="14" rx="2"/>
-          <rect x="-32" y="4" width="64" height="14" rx="2" transform="rotate(-3 0 11)"/>
-          <rect x="-30" y="-11" width="60" height="14" rx="2" transform="rotate(4 0 -4)"/>
-        </g>
-        <!-- squiggle -->
-        <path d="M20 140 C 60 155, 100 120, 150 135" opacity="0.5" stroke-width="1.5"/>
-        <!-- bookmark -->
-        <g transform="translate(60,205) rotate(-4)">
-          <path d="M-14 -28 L 14 -28 L 14 30 L 0 17 L -14 30 Z"/>
-        </g>
-        <!-- sparkle -->
-        <path d="M170 60 L170 72 M164 66 L176 66"/>
+  <!-- ── Error state ────────────────────────────────────────── -->
+  <div id="page-error" class="page-error" hidden>
+    <div class="error-card">
+      <svg viewBox="0 0 48 48" fill="none" width="48" height="48">
+        <circle cx="24" cy="24" r="20" stroke="var(--ink3)" stroke-width="2"/>
+        <path d="M24 14v12M24 32v2" stroke="var(--ink3)" stroke-width="2" stroke-linecap="round"/>
       </svg>
+      <p id="error-msg">Something went wrong.</p>
+      <a href="index.html" class="btn-primary">← Back to search</a>
     </div>
+  </div>
 
-    <div class="side-doodle side-doodle-right" aria-hidden="true">
-      <svg viewBox="0 0 220 260" xmlns="http://www.w3.org/2000/svg" fill="none" stroke="#1A1A18" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-        <!-- open book -->
-        <g transform="translate(110,70)">
-          <path d="M0 -18 C -22 -26 -42 -22 -42 -22 L -42 20 C -42 20 -22 16 0 24 Z"/>
-          <path d="M0 -18 C 22 -26 42 -22 42 -22 L 42 20 C 42 20 22 16 0 24 Z"/>
-          <path d="M-30 -14 L -8 -8 M-30 -2 L -8 3 M-30 10 L -8 15" stroke-width="1.5"/>
-          <path d="M30 -14 L 8 -8 M30 -2 L 8 3 M30 10 L 8 15" stroke-width="1.5"/>
-        </g>
-        <!-- squiggle -->
-        <path d="M50 150 C 90 135, 120 165, 170 155" opacity="0.5" stroke-width="1.5"/>
-        <!-- small stack of books -->
-        <g transform="translate(150,210) rotate(5)">
-          <rect x="-30" y="14" width="60" height="12" rx="2"/>
-          <rect x="-25" y="2" width="50" height="12" rx="2" transform="rotate(-4 0 8)"/>
-        </g>
-        <!-- sparkle -->
-        <path d="M40 210 L40 222 M34 216 L46 216"/>
-      </svg>
-    </div>
-  </section>
+  <!-- ── Main content ───────────────────────────────────────── -->
+  <main id="page-content" class="book-page-content" hidden>
+    <div class="book-container">
 
-  <!-- ═══════════════════════════════════════════════════════════
-       VIEW 1 — RECOMMENDATION
-  ════════════════════════════════════════════════════════════ -->
-  <main id="view-recommend" class="view active">
-    <div class="container">
+      <!-- ── Book Hero Section ─────────────────────────────── -->
+      <section class="book-hero glass-card">
 
-      <!-- Search card -->
-      <div class="search-card">
-        <div class="search-row">
-          <div class="autocomplete-wrap">
-            <label class="field-label" for="book-input">Book title</label>
-            <div class="input-icon-wrap">
-              <svg class="input-icon" viewBox="0 0 20 20" fill="none">
-                <circle cx="8.5" cy="8.5" r="5.75" stroke="currentColor" stroke-width="1.5"/>
-                <path d="M13.5 13.5L17 17" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
-              </svg>
-              <input
-                id="book-input"
-                class="book-input"
-                type="text"
-                placeholder="Start typing a title…"
-                autocomplete="off"
-                spellcheck="false"
-              />
-            </div>
-            <ul id="suggestions" class="suggestions" role="listbox" aria-label="Book suggestions"></ul>
-          </div>
-
-          <div class="lang-wrap">
-            <label class="field-label" for="lang-select">Language</label>
-            <select id="lang-select" class="lang-select">
-              <option value="en">English</option>
-              <option value="es">Spanish</option>
-              <option value="fr">French</option>
-              <option value="de">German</option>
-              <option value="hi">Hindi</option>
-              <option value="ar">Arabic</option>
-              <option value="zh-Hans">Chinese (Simplified)</option>
-              <option value="ja">Japanese</option>
-              <option value="pt">Portuguese</option>
-              <option value="ru">Russian</option>
-            </select>
-          </div>
-
-          <div class="count-wrap">
-            <label class="field-label" for="count-select">Results</label>
-            <select id="count-select" class="lang-select">
-              <option value="3">3 books</option>
-              <option value="5" selected>5 books</option>
-              <option value="8">8 books</option>
-            </select>
+        <!-- Cover -->
+        <div class="book-cover-wrap">
+          <div class="book-cover-shadow"></div>
+          <img id="book-cover" class="book-cover-img" src="" alt="" />
+          <div id="book-cover-placeholder" class="book-cover-placeholder" hidden>
+            <svg viewBox="0 0 80 110" fill="none">
+              <rect width="80" height="110" rx="6" fill="var(--bg2)"/>
+              <path d="M20 40h40M20 55h30M20 70h35" stroke="var(--ink3)" stroke-width="3" stroke-linecap="round"/>
+            </svg>
           </div>
         </div>
 
-        <button id="recommend-btn" class="recommend-btn" disabled>
-          <span class="btn-text">Find recommendations</span>
-          <span class="btn-spinner" hidden>
-            <svg viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2.5" stroke-dasharray="50" stroke-dashoffset="30" class="spinner-circle"/></svg>
-          </span>
-        </button>
+        <!-- Meta -->
+        <div class="book-meta">
 
-        <!-- ── or divider ──────────────────────────────────── -->
-        <div class="scan-divider" aria-hidden="true"><span>or</span></div>
+          <!-- Dataset warning banner -->
+          <div id="dataset-warning" class="dataset-warning" hidden>
+            <svg viewBox="0 0 20 20" fill="none" width="16" height="16">
+              <circle cx="10" cy="10" r="8" stroke="currentColor" stroke-width="1.5"/>
+              <path d="M10 6v5M10 13v1" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+            </svg>
+            <span id="dataset-warning-msg"></span>
+          </div>
 
-      <!-- Matched book badge -->
-      <div id="matched-book" class="matched-book" hidden>
-        <span class="matched-label">Showing recommendations for</span>
-        <span id="matched-title" class="matched-title"></span>
-        <span id="matched-genre" class="matched-genre"></span>
-      </div>
+          <!-- Categories / genre chips -->
+          <div id="book-categories" class="book-categories"></div>
 
-      <!-- Results grid -->
-      <div id="results" class="results-grid"></div>
+          <!-- Title -->
+          <div class="book-title-row">
+            <h1 id="book-title" class="book-detail-title"></h1>
+            <span id="main-book-heart-wrap"></span>
+          </div>
 
-      <!-- Empty / error state -->
-      <div id="empty-state" class="empty-state" hidden>
-        <svg viewBox="0 0 48 48" fill="none">
+          <!-- Authors -->
+          <p id="book-authors" class="book-authors"></p>
+
+          <!-- Star rating -->
+          <div id="book-rating-wrap" class="book-rating-wrap" hidden>
+            <div id="book-stars" class="book-stars"></div>
+            <span id="book-rating-count" class="book-rating-count"></span>
+          </div>
+
+          <!-- Quick stats grid -->
+          <div class="book-stats-grid">
+            <div id="stat-publisher" class="book-stat" hidden>
+              <span class="stat-label">Publisher</span>
+              <span id="stat-publisher-val" class="stat-value"></span>
+            </div>
+            <div id="stat-date" class="book-stat" hidden>
+              <span class="stat-label">Published</span>
+              <span id="stat-date-val" class="stat-value"></span>
+            </div>
+            <div id="stat-pages" class="book-stat" hidden>
+              <span class="stat-label">Pages</span>
+              <span id="stat-pages-val" class="stat-value"></span>
+            </div>
+            <div id="stat-language" class="book-stat" hidden>
+              <span class="stat-label">Language</span>
+              <span id="stat-language-val" class="stat-value"></span>
+            </div>
+            <div id="stat-isbn10" class="book-stat" hidden>
+              <span class="stat-label">ISBN-10</span>
+              <span id="stat-isbn10-val" class="stat-value mono"></span>
+            </div>
+            <div id="stat-isbn13" class="book-stat" hidden>
+              <span class="stat-label">ISBN-13</span>
+              <span id="stat-isbn13-val" class="stat-value mono"></span>
+            </div>
+          </div>
+
+          <!-- Action buttons -->
+          <div class="book-actions">
+            <a id="google-books-btn" class="btn-primary" href="#" target="_blank" rel="noopener" hidden>
+              <svg viewBox="0 0 20 20" fill="none" width="16" height="16">
+                <path d="M11 3H5a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-6" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+                <path d="M15 3h2v2M11 9l6-6" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+              View on Google Books
+            </a>
+            <a href="index.html" class="btn-secondary">← Search another book</a>
+          </div>
+        </div>
+      </section>
+
+      <!-- ── Description ───────────────────────────────────── -->
+      <section id="book-desc-section" class="book-desc-section glass-card" hidden>
+        <h2 class="section-heading">About this book</h2>
+        <div id="book-description" class="book-description"></div>
+        <button id="desc-toggle" class="desc-toggle" hidden>Show more</button>
+      </section>
+
+      <!-- ── Recommendations ───────────────────────────────── -->
+      <section id="rec-section" class="rec-section" hidden>
+        <div class="rec-header">
+          <h2 class="section-heading">Recommended Books</h2>
+        </div>
+        <div id="rec-grid" class="rec-grid"></div>
+      </section>
+
+      <!-- No recommendations message -->
+      <div id="no-rec-msg" class="no-rec-msg" hidden>
+        <svg viewBox="0 0 48 48" fill="none" width="40" height="40">
           <rect x="8" y="6" width="22" height="30" rx="2" stroke="currentColor" stroke-width="2"/>
           <rect x="14" y="10" width="22" height="30" rx="2" stroke="currentColor" stroke-width="2" fill="var(--bg)"/>
           <path d="M18 18h10M18 23h7" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
         </svg>
-        <p id="empty-msg">Search for a book above to get started.</p>
+        <p id="no-rec-text"></p>
       </div>
 
     </div>
   </main>
 
-  <!-- ═══════════════════════════════════════════════════════════
-       VIEW 2 — CHATBOT
-  ════════════════════════════════════════════════════════════ -->
-  <main id="view-chat" class="view">
-    <div class="container chat-container">
-
-      <div class="chat-header">
-        <div class="chat-avatar">
-          <svg viewBox="0 0 32 32" fill="none">
-            <rect width="32" height="32" rx="8" fill="var(--ink)"/>
-            <path d="M9 12h14M9 16h10M9 20h12" stroke="var(--bg)" stroke-width="2" stroke-linecap="round"/>
-          </svg>
-        </div>
-        <div>
-          <p class="chat-name">Shelf Assistant</p>
-          <p class="chat-subtitle">Ask me anything about books</p>
-        </div>
-        <div class="chat-lang-wrap">
-          <select id="chat-lang-select" class="lang-select small">
-            <option value="en">English</option>
-            <option value="es">Spanish</option>
-            <option value="fr">French</option>
-            <option value="de">German</option>
-            <option value="hi">Hindi</option>
-            <option value="ar">Arabic</option>
-            <option value="zh-Hans">Chinese (Simplified)</option>
-            <option value="ja">Japanese</option>
-            <option value="pt">Portuguese</option>
-            <option value="ru">Russian</option>
-          </select>
-        </div>
-      </div>
-
-      <div id="chat-messages" class="chat-messages">
-        <div class="chat-bubble assistant">
-          <p>Hi! I'm your personal book guide. Tell me a book you love, a genre you're in the mood for, or ask something like <em>"What should I read after The Alchemist?"</em></p>
-        </div>
-      </div>
-
-      <div class="chat-input-row">
-        <input
-          id="chat-input"
-          class="chat-input"
-          type="text"
-          placeholder="Ask about books…"
-          autocomplete="off"
-        />
-        <button id="chat-send" class="chat-send-btn" aria-label="Send">
-          <svg viewBox="0 0 20 20" fill="none">
-            <path d="M17 10L3 3l3.5 7L3 17l14-7z" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/>
-          </svg>
-        </button>
-      </div>
-
-      <div class="chat-suggestions-row">
-        <button class="chat-pill" data-msg="What should I read after Harry Potter?">After Harry Potter?</button>
-        <button class="chat-pill" data-msg="Recommend me a fantasy book">Fantasy picks</button>
-        <button class="chat-pill" data-msg="I want something magical and adventurous">Magical adventure</button>
-        <button class="chat-pill" data-msg="Best books for someone who loves mystery">Mystery lover</button>
-      </div>
-
-    </div>
-  </main>
-
-  <!-- ── Footer ──────────────────────────────────────────────── -->
+  <!-- ── Footer ─────────────────────────────────────────────── -->
   <footer class="site-footer">
   </footer>
 
   <script src="auth.js"></script>
-  <script src="app.js"></script>
+  <script src="favorites.js"></script>
+  <script src="book.js"></script>
 </body>
 </html>
