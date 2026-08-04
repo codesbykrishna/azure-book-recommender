@@ -33,7 +33,7 @@ from openai_helper     import generate_recommendation_explanation, chat_with_ass
 from translator_helper import translate_text
 from google_books      import search_book, search_by_title, search_by_isbn
 from vision            import extract_book_info_from_cover
-from cosmos_helper     import get_or_create_user, update_user_profile
+from cosmos_helper     import get_or_create_user, update_user_profile, toggle_favorite
  
 app = func.FunctionApp()
  
@@ -498,3 +498,45 @@ def update_user_profile_endpoint(req: func.HttpRequest) -> func.HttpResponse:
  
     safe = {k: v for k, v in updated.items() if not k.startswith("_")}
     return _json_response(safe)
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+# ENDPOINT 8 — POST /api/favorites
+# ══════════════════════════════════════════════════════════════════════════════
+
+@app.route(route="favorites", methods=["POST"], auth_level=func.AuthLevel.ANONYMOUS)
+def toggle_favorite_endpoint(req: func.HttpRequest) -> func.HttpResponse:
+    """
+    Add or remove a book from the logged-in user's favorites (toggle).
+    Requires sign-in — returns 401 if not authenticated.
+
+    Request body:
+    {
+      "index": 4281,                  (required — dataset book index)
+      "title": "Book title",          (optional, stored for display)
+      "genre": "fantasy"               (optional, stored for display)
+    }
+
+    Response: {"favorites": [...], "isFavorite": true|false}
+    """
+    principal = _get_swa_user(req)
+    if not principal:
+        return _json_response({"error": "Not authenticated"}, status_code=401)
+
+    try:
+        body = req.get_json()
+    except ValueError:
+        return _json_response({"error": "Request body must be JSON"}, status_code=400)
+
+    if body.get("index") is None:
+        return _json_response({"error": "index is required"}, status_code=400)
+
+    user_id = principal["userId"]
+
+    try:
+        result = toggle_favorite(user_id, body)
+    except Exception as exc:
+        logging.error(f"toggle_favorite_endpoint failed: {exc}")
+        return _json_response({"error": "Failed to update favorites"}, status_code=500)
+
+    return _json_response(result)
