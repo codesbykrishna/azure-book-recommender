@@ -254,13 +254,21 @@ function buildCard(rec, rank) {
     .map(t => `<span class="theme-tag">${escHtml(t)}</span>`)
     .join("");
 
+  const heartHtml = window.Favorites ? window.Favorites.heartButtonHtml(rec) : "";
+
   card.innerHTML = `
-    <span class="card-rank">PICK ${rank}</span>
+    <div class="card-top-row">
+      <span class="card-rank">PICK ${rank}</span>
+      ${heartHtml}
+    </div>
     <p class="card-title">${escHtml(rec.title)}</p>
     <span class="card-genre">${escHtml(rec.genre)}</span>
     <p class="card-explanation">${escHtml(rec.explanation)}</p>
     ${themes ? `<div class="card-themes">${themes}</div>` : ""}
   `;
+
+  if (window.Favorites) window.Favorites.wireHeartButton(card, rec);
+
   return card;
 }
 
