@@ -1394,3 +1394,43 @@ body.modal-open { overflow: hidden; }
    what caused the empty warning banner. This single rule restores
    `hidden` as the final word for every element on the page. */
 [hidden] { display: none !important; }
+/* ── Favorites (heart button) ────────────────────────────────────
+   Used on: Discover page cards (.book-card via .card-top-row),
+   Book Details recommendation cards (.rec-card-body via .card-top-row),
+   and the main book title on Book Details (.book-title-row). */
+.card-top-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+.book-title-row {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.fav-heart-btn {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  border: none;
+  background: transparent;
+  color: var(--ink3);
+  cursor: pointer;
+  border-radius: 50%;
+  transition: color 0.15s, background 0.15s, transform 0.1s;
+}
+.fav-heart-btn:hover {
+  color: #d9506a;
+  background: rgba(217, 80, 106, 0.08);
+  transform: scale(1.08);
+}
+.fav-heart-btn:active { transform: scale(0.95); }
+.fav-heart-btn.is-favorite { color: #d9506a; }
+.fav-heart-btn:disabled { opacity: 0.5; cursor: default; transform: none; }
