@@ -33,7 +33,7 @@ from openai_helper     import generate_recommendation_explanation, chat_with_ass
 from translator_helper import translate_text
 from google_books      import search_book, search_by_title, search_by_isbn
 from vision            import extract_book_info_from_cover
-from cosmos_helper     import get_or_create_user, update_user_profile, toggle_favorite
+from cosmos_helper     import get_or_create_user, update_user_profile, toggle_favorite, add_search_history
  
 app = func.FunctionApp()
  
@@ -129,21 +129,58 @@ def _build_recommendations(liked_book, data, language, top_n):
  
 def _get_swa_user(req):
     """
-    Extract the logged-in user from the Azure SWA-injected header.
-    Azure Static Web Apps adds x-ms-client-principal automatically.
-    Returns decoded dict if authenticated, or None if not logged in.
+    Identify the logged-in user making this request.
+
+    Primary path: the x-ms-client-principal header Azure Static Web Apps
+    injects automatically — but ONLY when a request is proxied through
+    the Static Web App's own domain to a linked backend. This Function
+    App is called directly on its own azurewebsites.net domain (see
+    API_BASE in app.js/book.js), which is a plain cross-origin request,
+    so that header will normally be absent here.
+
+    Fallback path: the frontend confirms sign-in itself via /.auth/me
+    (same-origin, always reliable) and sends the user's id/email
+    explicitly via X-User-Id / X-User-Email headers. This is a
+    reasonable tradeoff for a project at this scale, but note it does
+    mean the backend trusts what the client claims rather than a
+    cryptographically-verified identity — fine for a personal book app,
+    not something to reuse as-is for anything handling sensitive data.
+    The proper long-term fix is linking this Function App as the
+    Static Web App's official backend (Standard plan) and calling it
+    via a same-origin relative path instead of the direct URL.
     """
     header = req.headers.get("x-ms-client-principal", "")
-    if not header:
-        return None
+    if header:
+        try:
+            decoded   = base64.b64decode(header).decode("utf-8")
+            principal = json.loads(decoded)
+            if "authenticated" in principal.get("userRoles", []):
+                return principal
+        except Exception:
+            pass
+
+    user_id = req.headers.get("X-User-Id", "")
+    email   = req.headers.get("X-User-Email", "")
+    if user_id:
+        return {"userId": user_id, "userDetails": email, "userRoles": ["authenticated"]}
+
+    return None
+
+
+def _record_history_if_signed_in(req, book):
+    """
+    Best-effort: if the caller is signed in, record this book in their
+    search history. Never raises — history is a nice-to-have, and a
+    Cosmos hiccup here should never break a recommend/book_details
+    response the user is actually waiting on.
+    """
+    principal = _get_swa_user(req)
+    if not principal:
+        return
     try:
-        decoded   = base64.b64decode(header).decode("utf-8")
-        principal = json.loads(decoded)
-        if "authenticated" in principal.get("userRoles", []):
-            return principal
-        return None
-    except Exception:
-        return None
+        add_search_history(principal["userId"], book)
+    except Exception as exc:
+        logging.warning(f"_record_history_if_signed_in failed: {exc}")
  
  
 # ══════════════════════════════════════════════════════════════════════════════
@@ -196,6 +233,7 @@ def recommend(req: func.HttpRequest) -> func.HttpResponse:
  
     google_book     = search_book(liked_book["title"])
     recommendations = _build_recommendations(liked_book, data, language, top_n)
+    _record_history_if_signed_in(req, liked_book)
  
     return _json_response({
         "matched_book": {
@@ -317,6 +355,7 @@ def book_details(req: func.HttpRequest) -> func.HttpResponse:
  
     if in_dataset:
         recommendations = _build_recommendations(dataset_book, data, language, top_n)
+        _record_history_if_signed_in(req, dataset_book)
     else:
         unavailable_msg = (
             "This book is not available in our recommendation dataset, "
@@ -415,6 +454,7 @@ def scan_cover(req: func.HttpRequest) -> func.HttpResponse:
  
     if in_dataset:
         recommendations = _build_recommendations(dataset_book, data, language, top_n)
+        _record_history_if_signed_in(req, dataset_book)
     else:
         unavailable_msg = (
             "This book is not available in our recommendation dataset, "
