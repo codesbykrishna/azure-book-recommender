@@ -151,3 +151,34 @@ def toggle_favorite(user_id: str, book: dict) -> dict:
     item["updatedAt"] = datetime.now(timezone.utc).isoformat()
     container.upsert_item(item)
     return {"favorites": favorites, "isFavorite": is_favorite}
+
+
+def add_search_history(user_id: str, book: dict, max_entries: int = 20) -> list:
+    """
+    Record a book the user searched for / viewed, most-recent-first.
+    If the same book (by dataset index) is already in the history, it's
+    moved to the front instead of duplicated. List is capped at
+    `max_entries` so a profile document can't grow unbounded.
+
+    This is best-effort — callers should not fail the whole request if
+    this raises, since history is a nice-to-have, not core functionality.
+
+    Returns the updated history list.
+    """
+    container = _get_users_container()
+    item      = container.read_item(item=user_id, partition_key=user_id)
+    history   = item.setdefault("history", [])
+
+    book_index = book.get("index")
+    history[:] = [h for h in history if h.get("index") != book_index]
+    history.insert(0, {
+        "index":       book_index,
+        "title":       book.get("title", ""),
+        "genre":       book.get("genre", ""),
+        "searchedAt":  datetime.now(timezone.utc).isoformat(),
+    })
+    del history[max_entries:]
+
+    item["updatedAt"] = datetime.now(timezone.utc).isoformat()
+    container.upsert_item(item)
+    return history
