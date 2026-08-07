@@ -113,7 +113,10 @@ async function _syncUserProfile(user) {
   try {
     await fetch(`${base}/user_profile`, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: {
+        "Content-Type": "application/json",
+        ...window.Auth.authHeaders(),
+      },
       body: JSON.stringify({
         userId:      user.userId,
         email:       user.userDetails,
@@ -153,6 +156,13 @@ window.Auth = {
   // Backend endpoints that need auth read the x-ms-client-principal header
   // automatically injected by SWA — no token passing needed
   getAccessToken:  () => Promise.resolve(null),
+  // Explicit identity headers for calls made directly to book-recommend-api's
+  // own domain (cross-origin from the SWA), which never receives Azure's
+  // auto-injected x-ms-client-principal header. See _get_swa_user()'s
+  // docstring in function_app.py for the full explanation and caveats.
+  authHeaders: () => _currentUser
+    ? { "X-User-Id": _currentUser.userId, "X-User-Email": _currentUser.userDetails || "" }
+    : {},
 };
 
 /* ─── Wire up DOM once ready ─────────────────────────────────── */
