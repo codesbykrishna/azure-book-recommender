@@ -86,6 +86,11 @@ async function toggleFavorite(book) {
   }
 }
 
+// Standard, well-tested heart glyph (Feather Icons "heart" path),
+// viewBox 0 0 24 24 — swapped in after the hand-drawn version came
+// out mis-proportioned.
+const HEART_PATH = "M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z";
+
 window.Favorites = {
   isFavorite: (index) => _favoriteIndexes.has(index),
   toggle: toggleFavorite,
@@ -94,14 +99,14 @@ window.Favorites = {
   /**
    * Returns the HTML for a heart toggle button for a given book.
    * Caller is responsible for inserting this into a card's innerHTML,
-   * then calling wireButton() below once the element exists in the DOM.
+   * then calling wireHeartButton() below once the element exists in the DOM.
    */
   heartButtonHtml(book) {
     const filled = _favoriteIndexes.has(book.index);
     return `<button type="button" class="fav-heart-btn${filled ? " is-favorite" : ""}"
               data-fav-index="${book.index}" aria-label="${filled ? "Remove from favorites" : "Add to favorites"}" title="${filled ? "Remove from favorites" : "Add to favorites"}">
               <svg viewBox="0 0 24 24" width="18" height="18" fill="${filled ? "currentColor" : "none"}" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M12 21s-7.5-4.6-10-9.3C.3 8.2 2 4.5 5.6 4c2-.3 3.9.7 5 2.4C11.6 4.7 13.5 3.7 15.5 4c3.6.5 5.3 4.2 3.6 7.7C19.5 16.4 12 21 12 21z"/>
+                <path d="${HEART_PATH}"/>
               </svg>
             </button>`;
   },
