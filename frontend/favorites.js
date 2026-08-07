@@ -32,7 +32,10 @@ async function _loadFavorites() {
 
   const base = window.API_BASE || "";
   try {
-    const resp = await fetch(`${base}/user_profile`, { credentials: "include" });
+    const resp = await fetch(`${base}/user_profile`, {
+      credentials: "include",
+      headers: { ...window.Auth.authHeaders() },
+    });
     if (resp.ok) {
       const profile = await resp.json();
       _favoriteIndexes = new Set((profile.favorites || []).map(f => f.index));
@@ -61,7 +64,10 @@ async function toggleFavorite(book) {
     const resp = await fetch(`${base}/favorites`, {
       method: "POST",
       credentials: "include",
-      headers: { "Content-Type": "application/json" },
+      headers: {
+        "Content-Type": "application/json",
+        ...window.Auth.authHeaders(),
+      },
       body: JSON.stringify({
         index: book.index,
         title: book.title,
@@ -79,6 +85,7 @@ async function toggleFavorite(book) {
     const data = await resp.json();
     if (data.isFavorite) _favoriteIndexes.add(book.index);
     else _favoriteIndexes.delete(book.index);
+    window.dispatchEvent(new CustomEvent("favorites:changed"));
     return data.isFavorite;
   } catch (err) {
     console.warn("favorites.js: toggle failed:", err);
