@@ -9,6 +9,8 @@
 
 /* ─── Config ────────────────────────────────────────────────── */
 const API_BASE = "https://book-recommend-api-c3bzbjbgbydab7hw.centralindia-01.azurewebsites.net/api";
+// Explicitly expose on window — see app.js for why this line is needed.
+window.API_BASE = API_BASE;
 
 /* ─── DOM refs ──────────────────────────────────────────────── */
 const pageLoading   = document.getElementById("page-loading");
