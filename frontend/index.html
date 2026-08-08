@@ -26,8 +26,34 @@
       <div id="auth-area" class="auth-area">
         <button id="auth-login-btn" class="auth-login-btn">Sign In</button>
         <div id="auth-user-area" class="auth-user-area" hidden>
-          <span id="auth-user-name" class="auth-user-name"></span>
-          <button id="auth-logout-btn" class="auth-logout-btn" hidden>Sign Out</button>
+          <button id="profile-chip-btn" class="profile-chip-btn" type="button" aria-haspopup="true" aria-expanded="false">
+            <span id="profile-avatar" class="profile-avatar"></span>
+            <span id="auth-user-name" class="auth-user-name"></span>
+            <svg class="profile-chip-caret" viewBox="0 0 12 12" width="10" height="10" fill="none">
+              <path d="M2.5 4.5L6 8l3.5-3.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          </button>
+
+          <div id="profile-dropdown" class="profile-dropdown" hidden>
+            <div class="profile-dropdown-header">
+              <span id="profile-dropdown-email" class="profile-dropdown-email"></span>
+              <button id="auth-logout-btn" class="auth-logout-btn">Sign Out</button>
+            </div>
+
+            <div class="profile-dropdown-section">
+              <p class="profile-dropdown-heading">❤ Favorites</p>
+              <ul id="profile-favorites-list" class="profile-dropdown-list">
+                <li class="profile-dropdown-empty">No favorites yet</li>
+              </ul>
+            </div>
+
+            <div class="profile-dropdown-section">
+              <p class="profile-dropdown-heading">🕓 Recent Searches</p>
+              <ul id="profile-history-list" class="profile-dropdown-list">
+                <li class="profile-dropdown-empty">No searches yet</li>
+              </ul>
+            </div>
+          </div>
         </div>
       </div>
     </div>
@@ -283,6 +309,7 @@
 
   <script src="auth.js"></script>
   <script src="favorites.js"></script>
+  <script src="profile-menu.js"></script>
   <script src="app.js"></script>
 </body>
 </html>
