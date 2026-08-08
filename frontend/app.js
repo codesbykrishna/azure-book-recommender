@@ -14,6 +14,10 @@
  */
 
 const API_BASE = "https://book-recommend-api-c3bzbjbgbydab7hw.centralindia-01.azurewebsites.net/api";
+// Explicitly expose on window — a plain top-level `const` does NOT become
+// window.API_BASE automatically, but favorites.js/profile-menu.js need to
+// read it from other script files.
+window.API_BASE = API_BASE;
 
 /* ═══════════════════════════════════════════════════════════════
    SHARED STATE
