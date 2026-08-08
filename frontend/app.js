@@ -210,7 +210,10 @@ recommendBtn.addEventListener("click", async () => {
   try {
     const resp = await fetch(`${API_BASE}/recommend`, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: {
+        "Content-Type": "application/json",
+        ...(window.Auth ? window.Auth.authHeaders() : {}),
+      },
       body: JSON.stringify({ book_title: title, language: lang, top_n: topN }),
     });
 
@@ -254,21 +257,13 @@ function buildCard(rec, rank) {
     .map(t => `<span class="theme-tag">${escHtml(t)}</span>`)
     .join("");
 
-  const heartHtml = window.Favorites ? window.Favorites.heartButtonHtml(rec) : "";
-
   card.innerHTML = `
-    <div class="card-top-row">
-      <span class="card-rank">PICK ${rank}</span>
-      ${heartHtml}
-    </div>
+    <span class="card-rank">PICK ${rank}</span>
     <p class="card-title">${escHtml(rec.title)}</p>
     <span class="card-genre">${escHtml(rec.genre)}</span>
     <p class="card-explanation">${escHtml(rec.explanation)}</p>
     ${themes ? `<div class="card-themes">${themes}</div>` : ""}
   `;
-
-  if (window.Favorites) window.Favorites.wireHeartButton(card, rec);
-
   return card;
 }
 
@@ -477,7 +472,10 @@ async function handleScan(file) {
   try {
     resp = await fetch(`${API_BASE}/scan_cover`, {
       method:  "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: {
+        "Content-Type": "application/json",
+        ...(window.Auth ? window.Auth.authHeaders() : {}),
+      },
       body:    JSON.stringify({
         image:        base64,
         content_type: file.type || "image/jpeg",
