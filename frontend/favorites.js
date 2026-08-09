@@ -33,7 +33,6 @@ async function _loadFavorites() {
   const base = window.API_BASE || "";
   try {
     const resp = await fetch(`${base}/user_profile`, {
-      credentials: "include",
       headers: { ...window.Auth.authHeaders() },
     });
     if (resp.ok) {
@@ -63,7 +62,6 @@ async function toggleFavorite(book) {
   try {
     const resp = await fetch(`${base}/favorites`, {
       method: "POST",
-      credentials: "include",
       headers: {
         "Content-Type": "application/json",
         ...window.Auth.authHeaders(),
