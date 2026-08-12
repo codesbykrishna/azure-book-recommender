@@ -50,6 +50,38 @@ def _get_users_container():
 
 # ── User profile operations ────────────────────────────────────────────────────
 
+def _read_or_init_item(container, user_id: str, email: str = "", display_name: str = "") -> dict:
+    """
+    Shared helper: read a user's profile, or create a minimal one on the
+    spot if it doesn't exist yet. Used by every write operation below so
+    none of them crash with CosmosResourceNotFoundError on a user's very
+    first request (e.g. favoriting a book before their profile has been
+    created via get_or_create_user, or a race between two near-simultaneous
+    first requests).
+    """
+    now = datetime.now(timezone.utc).isoformat()
+    try:
+        return container.read_item(item=user_id, partition_key=user_id)
+    except exceptions.CosmosResourceNotFoundError:
+        new_user = {
+            "id":          user_id,
+            "userId":      user_id,
+            "email":       email,
+            "displayName": display_name or (email.split("@")[0] if email else ""),
+            "createdAt":   now,
+            "lastLoginAt": now,
+            "preferences": {"language": "en"},
+        }
+        try:
+            container.create_item(new_user)
+            return new_user
+        except exceptions.CosmosResourceExistsError:
+            # Lost a race with a near-simultaneous first request (e.g. the
+            # GET /user_profile and POST /user_profile calls that both fire
+            # right after login) — someone else just created it, read it.
+            return container.read_item(item=user_id, partition_key=user_id)
+
+
 def get_or_create_user(user_id: str, email: str, display_name: str = "") -> dict:
     """
     Fetch the user profile from Cosmos DB.
@@ -61,30 +93,10 @@ def get_or_create_user(user_id: str, email: str, display_name: str = "") -> dict
     now = datetime.now(timezone.utc).isoformat()
 
     try:
-        # Try to read existing profile
-        item = container.read_item(item=user_id, partition_key=user_id)
-        # Update last login timestamp
+        item = _read_or_init_item(container, user_id, email, display_name)
         item["lastLoginAt"] = now
         container.upsert_item(item)
         return item
-
-    except exceptions.CosmosResourceNotFoundError:
-        # First login — create profile
-        new_user = {
-            "id":          user_id,
-            "userId":      user_id,
-            "email":       email,
-            "displayName": display_name or email.split("@")[0],
-            "createdAt":   now,
-            "lastLoginAt": now,
-            "preferences": {
-                "language": "en",
-            },
-        }
-        container.create_item(new_user)
-        logging.info(f"New user created: {user_id}")
-        return new_user
-
     except Exception as exc:
         logging.error(f"get_or_create_user failed: {exc}")
         raise
@@ -94,13 +106,18 @@ def update_user_profile(user_id: str, updates: dict) -> dict:
     """
     Update allowed fields on a user's profile.
     Only whitelisted fields can be updated to prevent injection.
+    Creates the profile first if this is the user's very first request.
 
     Returns the updated profile dict.
     """
     ALLOWED_FIELDS = {"displayName", "preferences"}
 
     container  = _get_users_container()
-    item       = container.read_item(item=user_id, partition_key=user_id)
+    item       = _read_or_init_item(
+        container, user_id,
+        email=updates.get("email", ""),
+        display_name=updates.get("displayName", ""),
+    )
     now        = datetime.now(timezone.utc).isoformat()
 
     for key, value in updates.items():
@@ -127,7 +144,7 @@ def toggle_favorite(user_id: str, book: dict) -> dict:
     list plus whether this specific book ended up favorited or not.
     """
     container = _get_users_container()
-    item      = container.read_item(item=user_id, partition_key=user_id)
+    item      = _read_or_init_item(container, user_id)
     favorites = item.setdefault("favorites", [])
 
     book_index    = book.get("index")
@@ -166,7 +183,7 @@ def add_search_history(user_id: str, book: dict, max_entries: int = 20) -> list:
     Returns the updated history list.
     """
     container = _get_users_container()
-    item      = container.read_item(item=user_id, partition_key=user_id)
+    item      = _read_or_init_item(container, user_id)
     history   = item.setdefault("history", [])
 
     book_index = book.get("index")
