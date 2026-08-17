@@ -29,6 +29,7 @@ const bookRatingCount = document.getElementById("book-rating-count");
 const datasetWarning  = document.getElementById("dataset-warning");
 const datasetWarningMsg = document.getElementById("dataset-warning-msg");
 const googleBooksBtn  = document.getElementById("google-books-btn");
+const mainBookHeartWrap = document.getElementById("main-book-heart-wrap");
 
 const statPublisher   = document.getElementById("stat-publisher");
 const statPublisherV  = document.getElementById("stat-publisher-val");
@@ -103,6 +104,12 @@ let fullDescription = "";
 let descExpanded    = false;
 const DESC_LIMIT    = 400; // chars before "Show more"
 
+// The dataset copy of the book currently on screen — {index, title, genre}.
+// Only set when the backend says this book exists in our dataset
+// (data.in_dataset === true), since favoriting needs a dataset index.
+// null otherwise, in which case no heart button is shown for the main book.
+let currentDatasetBook = null;
+
 /* ─── Show/hide page states ─────────────────────────────────── */
 function showLoading() {
   show(pageLoading);
@@ -163,6 +170,21 @@ function renderRating(rating, ratingsCount) {
     ? `${rating} · ${ratingsCount.toLocaleString()} ratings`
     : String(rating);
   show(bookRatingWrap);
+}
+
+/* ─── Render the favorite heart for the book being viewed ───── */
+function renderFavoriteButton(datasetBook) {
+  if (!mainBookHeartWrap) return;
+
+  // Favoriting is keyed off the dataset index, so it's only possible
+  // when this exact book exists in our recommendation dataset.
+  if (!datasetBook || !window.Favorites) {
+    mainBookHeartWrap.innerHTML = "";
+    return;
+  }
+
+  mainBookHeartWrap.innerHTML = window.Favorites.heartButtonHtml(datasetBook);
+  window.Favorites.wireHeartButton(mainBookHeartWrap, datasetBook);
 }
 
 /* ─── Render description with expand/collapse ───────────────── */
@@ -260,8 +282,14 @@ function buildRecCard(rec, index) {
     .map(t => `<span class="theme-tag">${esc(t)}</span>`)
     .join("");
 
+  // Recommendation objects always come from our dataset (that's the
+  // whole point of the recommendation engine), so rec.index is always
+  // safe to hand to the favorites module.
+  const favHtml = window.Favorites ? window.Favorites.heartButtonHtml(rec) : "";
+
   card.innerHTML = `
     ${coverHtml}
+    ${favHtml}
     <div class="rec-card-body">
       <span class="card-genre">${esc(rec.genre || "")}</span>
       <p class="rec-card-title">${esc(rec.title)}</p>
@@ -279,6 +307,8 @@ function buildRecCard(rec, index) {
   card.querySelector(".btn-view-details").addEventListener("click", () => {
     goToBook(rec.title);
   });
+
+  if (window.Favorites) window.Favorites.wireHeartButton(card, rec);
 
   const coverImg = card.querySelector(".rec-cover-img");
   if (coverImg) {
@@ -334,6 +364,28 @@ function renderDatasetWarning(inDataset, unavailableMsg) {
   }
 }
 
+/* ─── Keep heart icons in sync once the favorites list loads ────
+   Heart buttons render as "not favorited" the instant a page loads
+   (before we know the user's actual list), so once favorites.js
+   finishes fetching it, sync every heart icon already on the page
+   without re-fetching book data or rebuilding the cards. */
+function refreshAllFavoriteIcons() {
+  if (!window.Favorites) return;
+
+  renderFavoriteButton(currentDatasetBook);
+
+  document.querySelectorAll(".fav-heart-btn[data-fav-index]").forEach(btn => {
+    const idx = Number(btn.dataset.favIndex);
+    const isFav = window.Favorites.isFavorite(idx);
+    btn.classList.toggle("is-favorite", isFav);
+    btn.setAttribute("aria-label", isFav ? "Remove from favorites" : "Add to favorites");
+    btn.title = isFav ? "Remove from favorites" : "Add to favorites";
+    const svg = btn.querySelector("svg");
+    if (svg) svg.setAttribute("fill", isFav ? "currentColor" : "none");
+  });
+}
+window.addEventListener("favorites:ready", refreshAllFavoriteIcons);
+
 /* ─── Main: fetch and render ────────────────────────────────── */
 async function init() {
   const params = new URLSearchParams(window.location.search);
@@ -368,7 +420,9 @@ async function init() {
     }
 
     showContent();
+    currentDatasetBook = data.in_dataset ? data.dataset_book : null;
     renderBookDetails(gb);
+    renderFavoriteButton(currentDatasetBook);
     renderDatasetWarning(data.in_dataset, data.unavailable_msg);
     renderRecommendations(data.recommendations, data.unavailable_msg);
     return;   // ← done; skip the fetch below
@@ -432,7 +486,9 @@ async function init() {
 
   // Render everything
   showContent();
+  currentDatasetBook = data.in_dataset ? data.dataset_book : null;
   renderBookDetails(gb);
+  renderFavoriteButton(currentDatasetBook);
   renderDatasetWarning(data.in_dataset, data.unavailable_msg);
   renderRecommendations(data.recommendations, data.unavailable_msg);
 }
