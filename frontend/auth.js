@@ -24,6 +24,12 @@
 /* ─── State ──────────────────────────────────────────────────── */
 let _currentUser = null;   // set by initAuth()
 
+// Resolves once the /.auth/me sign-in check (and profile sync) has
+// finished, so other scripts can await window.Auth.ready before
+// firing requests that depend on authHeaders() being correct.
+let _resolveAuthReady;
+const _authReadyPromise = new Promise((resolve) => { _resolveAuthReady = resolve; });
+
 /* ─── Core: fetch current user from SWA ─────────────────────── */
 /**
  * Calls /.auth/me which Azure Static Web Apps provides automatically.
@@ -143,6 +149,9 @@ async function initAuth() {
       new CustomEvent("auth:ready", { detail: { user: _currentUser } })
     );
   }
+  // Resolve regardless of whether the user is signed in — callers just
+  // need to know the check is DONE, not that it succeeded.
+  _resolveAuthReady();
 }
 
 /* ─── Public API ─────────────────────────────────────────────── */
@@ -163,6 +172,9 @@ window.Auth = {
   authHeaders: () => _currentUser
     ? { "X-User-Id": _currentUser.userId, "X-User-Email": _currentUser.userDetails || "" }
     : {},
+  // await window.Auth.ready before sending any request that needs
+  // authHeaders() to be accurate (recommend/book_details/scan_cover).
+  ready: _authReadyPromise,
 };
 
 /* ─── Wire up DOM once ready ─────────────────────────────────── */
