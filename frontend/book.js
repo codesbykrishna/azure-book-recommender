@@ -444,6 +444,7 @@ async function init() {
   // Call /api/book_details
   let data;
   try {
+    if (window.Auth) await window.Auth.ready;
     const resp = await fetch(`${API_BASE}/book_details`, {
       method:  "POST",
       headers: {
