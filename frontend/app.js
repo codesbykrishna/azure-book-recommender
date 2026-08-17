@@ -210,6 +210,7 @@ recommendBtn.addEventListener("click", async () => {
   emptyState.hidden = true;
 
   try {
+    if (window.Auth) await window.Auth.ready;
     const resp = await fetch(`${API_BASE}/recommend`, {
       method: "POST",
       headers: {
@@ -464,6 +465,7 @@ async function handleScan(file) {
 
   let resp, data;
   try {
+    if (window.Auth) await window.Auth.ready;
     resp = await fetch(`${API_BASE}/scan_cover`, {
       method:  "POST",
       headers: {
